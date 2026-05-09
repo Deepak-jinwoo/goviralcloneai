@@ -1,98 +1,93 @@
 /**
- * Auth Manager — LocalStorage-based Custom Authentication System
+ * Custom Auth Manager — Username/Password auth stored in localStorage
+ * User-scoped data isolation via unique uid per user
  */
 
-const USERS_KEY = 'goviral_users';
-const SESSION_KEY = 'goviral_session';
+const USERS_KEY = 'goviral_users_v2';
+const SESSION_KEY = 'goviral_session_v2';
 
-/**
- * Get all registered users from local storage
- * @returns {Array} Array of user objects { username, password }
- */
-function getUsers() {
-  try {
-    const raw = localStorage.getItem(USERS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
+/** djb2 hash — lightweight, deterministic */
+function hashPassword(password) {
+  let hash = 5381;
+  for (let i = 0; i < password.length; i++) {
+    hash = ((hash << 5) + hash) + password.charCodeAt(i);
+    hash = hash & hash;
   }
+  return `$gv${Math.abs(hash).toString(16)}x${password.length}`;
 }
 
-/**
- * Save users array to local storage
- * @param {Array} users 
- */
+function getUsers() {
+  try { return JSON.parse(localStorage.getItem(USERS_KEY) || '{}'); }
+  catch { return {}; }
+}
+
 function saveUsers(users) {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
-/**
- * Sign up a new user
- * @param {string} username 
- * @param {string} password 
- * @returns {Object} { success, message, user }
- */
-export function signup(username, password) {
-  if (!username || !username.trim()) return { success: false, message: 'Username cannot be empty.' };
-  if (!password || !password.trim()) return { success: false, message: 'Password cannot be empty.' };
-  
-  const formattedUsername = username.trim();
-  const users = getUsers();
-  
-  // Check for duplicates
-  const exists = users.find(u => u.username.toLowerCase() === formattedUsername.toLowerCase());
-  if (exists) return { success: false, message: 'Username already exists. Please choose another.' };
+function buildSession(user) {
+  return {
+    uid: user.uid,
+    username: user.username,
+    displayName: user.displayName,
+    createdAt: user.createdAt,
+    loginAt: Date.now(),
+  };
+}
 
-  const newUser = { username: formattedUsername, password: password.trim() };
-  users.push(newUser);
+/** Sign up a new user */
+export function signUp(username, password, confirmPassword) {
+  const u = username.trim();
+  const key = u.toLowerCase();
+
+  if (!u) return { error: 'Username is required.' };
+  if (u.length < 3) return { error: 'Username must be at least 3 characters.' };
+  if (/[^a-zA-Z0-9_]/.test(u)) return { error: 'Username can only contain letters, numbers, and underscores.' };
+  if (!password) return { error: 'Password is required.' };
+  if (password.length < 4) return { error: 'Password must be at least 4 characters.' };
+  if (password !== confirmPassword) return { error: 'Passwords do not match.' };
+
+  const users = getUsers();
+  if (users[key]) return { error: 'Username already taken. Choose another.' };
+
+  const user = {
+    uid: `${key}_${Date.now().toString(36)}`,
+    username: u,
+    displayName: u,
+    passwordHash: hashPassword(password),
+    createdAt: Date.now(),
+  };
+
+  users[key] = user;
   saveUsers(users);
 
-  // Auto-login after signup
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ username: newUser.username }));
-  return { success: true, user: { uid: newUser.username, displayName: newUser.username } };
+  const session = buildSession(user);
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  return { user: session };
 }
 
-/**
- * Log in an existing user
- * @param {string} username 
- * @param {string} password 
- * @returns {Object} { success, message, user }
- */
+/** Login an existing user */
 export function login(username, password) {
-  if (!username || !password) return { success: false, message: 'Please enter both username and password.' };
+  const key = username.trim().toLowerCase();
+  if (!key || !password) return { error: 'Please enter username and password.' };
 
-  const formattedUsername = username.trim();
   const users = getUsers();
-  
-  const user = users.find(u => 
-    u.username.toLowerCase() === formattedUsername.toLowerCase() && 
-    u.password === password.trim()
-  );
+  const user = users[key];
+  if (!user) return { error: 'Invalid username or password.' };
+  if (user.passwordHash !== hashPassword(password)) return { error: 'Invalid username or password.' };
 
-  if (!user) return { success: false, message: 'Invalid username or password.' };
-
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ username: user.username }));
-  return { success: true, user: { uid: user.username, displayName: user.username } };
+  const session = buildSession(user);
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  return { user: session };
 }
 
-/**
- * Get the currently logged-in user session
- * @returns {Object|null} The user object { uid, displayName } or null
- */
-export function getCurrentUser() {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const session = JSON.parse(raw);
-    return { uid: session.username, displayName: session.username };
-  } catch {
-    return null;
-  }
+/** Get current session (returns null if not logged in) */
+export function getSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }
+  catch { return null; }
 }
 
-/**
- * Log out the current user
- */
+/** Logout — clear session only (keep user account + history) */
 export function logout() {
   localStorage.removeItem(SESSION_KEY);
 }

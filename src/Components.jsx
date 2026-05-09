@@ -39,7 +39,7 @@ export const Nav = ({onNavigate, currentView, user, onLogout}) => (
         Go Viral<span className="text-zinc-500 font-medium ml-1">AI</span>
       </span>
       <div className="hidden md:flex items-center gap-8">
-        {[['dashboard','Dashboard'],['history','History'],['chat','AI Chat']].map(([v,l])=>(
+        {[['dashboard','Dashboard'],['history','History'],['chat','AI Chat'],['trends','Trends']].map(([v,l])=>(
           <a key={v} href="#" onClick={e=>{e.preventDefault();onNavigate(v)}} className={`text-sm font-semibold font-inter transition-all ${currentView===v?'text-white':'text-zinc-500 hover:text-zinc-300'}`}>{l}</a>
         ))}
       </div>
@@ -67,7 +67,7 @@ export const Side = ({onNavigate, currentView}) => (
       <p className="text-xl font-bold text-white font-jakarta">Virality Pro</p>
     </div>
     <nav className="flex flex-col gap-1 flex-grow">
-      {[['dashboard','Dashboard','home'],['history','History','history'],['chat','AI Chat','smart_toy'],['insights','Trends','trending_up']].map(([view,label,icon])=>(
+      {[['dashboard','Dashboard','home'],['history','History','history'],['chat','AI Chat','smart_toy'],['trends','Trends','trending_up']].map(([view,label,icon])=>(
         <a key={label} href="#" onClick={e=>{e.preventDefault();onNavigate(view)}} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold font-inter transition-all ${currentView===view?'bg-white/5 text-white border border-white/5':'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03]'}`}>
           <I n={icon} s={{fontSize:18}}/>{label}
         </a>
@@ -232,7 +232,7 @@ export const ScoreCircle = ({score=0}) => {
 };
 
 // ─── METRICS ──────────────────────────────────────────────────────────
-export const Metrics = ({metrics}) => {
+export const Metrics = ({metrics, platform}) => {
   const m=metrics||{};
   const [mounted,setMounted]=useState(false);
   useEffect(()=>{const t=setTimeout(()=>setMounted(true),200);return()=>clearTimeout(t);},[]);
@@ -241,14 +241,15 @@ export const Metrics = ({metrics}) => {
   const textColor = v => v>=70?'text-green-400':v>=40?'text-amber-400':'text-red-400';
 
   const bars = [
-    {icon:'anchor',label:'Hook Effectiveness',val:m.hookPercent||0,tip:'Opening hook strength'},
-    {icon:'forum',label:'Engagement Prediction',val:m.engagementPercent||0,tip:'Engagement trigger density'},
-    {icon:'timer',label:'Retention Prediction',val:m.retentionPrediction||0,tip:'Estimated viewer retention'},
-    {icon:'edit_note',label:'Caption Quality',val:m.captionPercent||0,tip:'Caption quality & CTA'},
+    {icon:'anchor',label:'Hook Effectiveness',val:m.hookPercent||0},
+    {icon:'forum',label:'Engagement Prediction',val:m.engagementPercent||0},
+    {icon:'timer',label:'Retention Prediction',val:m.retentionPrediction||0},
+    {icon:'edit_note',label:'Caption Quality',val:m.captionPercent||0},
   ];
 
+  const platLabel = platform ? platform.charAt(0).toUpperCase()+platform.slice(1) : 'Auto';
   const tags = [
-    {icon:'public',label:'Platform',val:(result?.platform||'Auto').charAt(0).toUpperCase()+(result?.platform||'Auto').slice(1)},
+    {icon:'public',label:'Platform',val:platLabel},
     {icon:'trending_up',label:'Trend',val:m.trendStatus||'N/A'},
   ];
 
@@ -414,9 +415,82 @@ export const BeforeAfter = ({result}) => {
   );
 };
 
+// ─── CREATOR INSIGHTS ─────────────────────────────────────────────────
+export const CreatorInsights = () => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setMounted(true), 300); return () => clearTimeout(t); }, []);
+
+  const hour = new Date().getHours();
+  const peakTime = hour < 12 ? '7:30 PM' : hour < 17 ? '8:45 PM' : '9:15 PM';
+  const activity = hour >= 9 && hour <= 11 ? 72 : hour >= 18 && hour <= 22 ? 94 : hour >= 13 && hour <= 16 ? 58 : 41;
+
+  const cards = [
+    { icon: 'schedule', label: 'Best Posting Time', value: peakTime, sub: 'Based on audience behavior', accent: 'purple' },
+    { icon: 'group', label: 'Audience Activity', value: `${activity}%`, sub: activity >= 70 ? 'Peak — post now!' : 'Building — wait for peak', accent: activity >= 70 ? 'green' : 'amber' },
+    { icon: 'movie_filter', label: 'Recommended Style', value: 'Short Storytelling', sub: 'Hooks + fast cuts + CTA', accent: 'cyan' },
+    { icon: 'local_fire_department', label: 'Niche Trend', value: 'AI + Productivity', sub: 'Rising +34% this week', accent: 'pink' },
+    { icon: 'trending_up', label: 'Engagement Boost', value: '+38%', sub: 'If you apply AI suggestions', accent: 'green' },
+  ];
+
+  const accentMap = { purple: '#a855f7', green: '#4ade80', amber: '#fbbf24', cyan: '#22d3ee', pink: '#f472b6' };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass rounded-3xl p-6 space-y-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl premium-gradient flex items-center justify-center shadow-md shadow-purple-500/20">
+            <I n="insights" c="text-white" s={{ fontSize: 16 }} />
+          </div>
+          <div>
+            <h3 className="font-bold text-white font-jakarta text-base">Creator Insights</h3>
+            <p className="text-[10px] text-slate-500 font-medium">AI-powered intelligence for your content</p>
+          </div>
+        </div>
+        <span className="badge badge-purple text-[9px]">Live</span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        {cards.map((c, i) => (
+          <motion.div
+            key={c.label}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: mounted ? 1 : 0, y: mounted ? 0 : 12 }}
+            transition={{ delay: 0.1 + i * 0.08 }}
+            className="group p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-purple-500/25 hover:bg-white/[0.04] transition-all cursor-default relative overflow-hidden"
+          >
+            {/* subtle glow */}
+            <div className="absolute -top-8 -right-8 w-20 h-20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-2xl" style={{ background: accentMap[c.accent] + '15' }} />
+
+            <div className="flex items-center gap-2 mb-3 relative">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: accentMap[c.accent] + '15' }}>
+                <I n={c.icon} s={{ fontSize: 15, color: accentMap[c.accent] }} />
+              </div>
+              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider leading-tight">{c.label}</span>
+            </div>
+
+            <p className="text-lg font-extrabold text-white font-jakarta mb-0.5 relative" style={{ color: accentMap[c.accent] }}>{c.value}</p>
+            <p className="text-[10px] text-slate-500 leading-snug relative">{c.sub}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* mini live bar */}
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 bg-green-500 rounded-full pulse-dot" />
+          <span className="text-[10px] text-green-400 font-bold">LIVE</span>
+        </div>
+        <p className="text-[11px] text-slate-400 flex-1">Your audience is most active right now — this is the best window to post content for maximum reach.</p>
+        <I n="arrow_forward" c="text-slate-600" s={{ fontSize: 14 }} />
+      </div>
+    </motion.div>
+  );
+};
+
 // ─── TRENDS DASHBOARD ────────────────────────────────────────────────
 export const TrendsDashboard = () => {
   const [trends, setTrends] = useState(null);
+  const [copied, setCopied] = useState(null);
 
   useEffect(() => {
     import('./utils/trendsEngine.js').then(({ analyzeTrends }) => {
@@ -426,69 +500,188 @@ export const TrendsDashboard = () => {
 
   if (!trends) return <SkeletonDash />;
 
+  const copy = (txt, id) => { navigator.clipboard?.writeText(txt); setCopied(id); setTimeout(() => setCopied(null), 1500); };
+
+  const categories = [
+    { name:'AI Storytelling Shorts', icon:'auto_awesome', status:'Exploding 🚀', potential:92, reach:'1M–5M', growth:'+240%', competition:'Low' },
+    { name:'Productivity Hacks',     icon:'bolt',         status:'Exploding 🚀', potential:88, reach:'500k–2M',growth:'+180%', competition:'Medium' },
+    { name:'Finance & Side Hustles', icon:'payments',     status:'Hot',           potential:82, reach:'200k–1M',growth:'+120%', competition:'Medium' },
+    { name:'Gaming Edits',           icon:'sports_esports',status:'Hot',          potential:78, reach:'300k–1.5M',growth:'+95%',competition:'High' },
+    { name:'Educational Shorts',     icon:'school',       status:'Growing',       potential:75, reach:'100k–500k',growth:'+85%',competition:'Low' },
+    { name:'Mini Vlogs',             icon:'videocam',     status:'Growing',       potential:72, reach:'80k–400k', growth:'+70%',competition:'Low' },
+    { name:'Tech Facts & Reviews',   icon:'memory',       status:'Hot',           potential:80, reach:'150k–800k',growth:'+110%',competition:'Medium' },
+    { name:'Motivation & Mindset',   icon:'psychology',   status:'Growing',       potential:68, reach:'100k–300k',growth:'+55%',competition:'High' },
+    { name:'Relatable POV Content',  icon:'person',       status:'Exploding 🚀', potential:90, reach:'800k–3M', growth:'+200%',competition:'Low' },
+  ];
+
+  const hooks = [
+    'Stop scrolling — this will change how you think about [topic].',
+    "I tested this for 30 days. Here's what nobody tells you…",
+    "The reason you're not going viral is this ONE thing.",
+    "POV: You just discovered the secret everyone's been hiding.",
+    'Wait until the end — this gets insane.',
+    "Nobody is talking about this hack and it's worth millions.",
+  ];
+
+  const hashtags = [
+    ...(trends.trendingHashtags?.tiktok || []),
+    ...(trends.trendingHashtags?.instagram || []),
+    ...(trends.trendingHashtags?.youtube || []),
+  ].filter((v,i,a) => a.indexOf(v) === i).slice(0, 18);
+
+  const tips = [
+    'Post consistently — at least 4× per week for algorithm favor.',
+    'Reply to every comment in the first 60 minutes after posting.',
+    'Use trending audio released within the last 48 hours.',
+    'Start with a question or bold stat in the first 2 seconds.',
+    'Mix 2-3 broad hashtags with 3-4 niche-specific tags.',
+    'Repurpose top-performing content across TikTok, Reels, and Shorts.',
+  ];
+
+  const formats = [
+    { name:'Fast-Paced Storytelling', why:'Holds attention with rapid cuts and emotional hooks. Completion rate is 2× higher.', icon:'movie_filter', color:'#a855f7' },
+    { name:'Relatable POV Content',   why:'Viewers see themselves in the content — instant connection and shares.', icon:'person', color:'#22d3ee' },
+    { name:'Hyper-Short Educational',  why:'15-second knowledge bombs feel valuable. Algorithm pushes save-worthy content.', icon:'school', color:'#fbbf24' },
+    { name:'AI-Generated Cinematic',   why:'Novel visuals stop the scroll. AI aesthetics are the #1 curiosity trigger in 2026.', icon:'auto_awesome', color:'#f472b6' },
+  ];
+
+  const postStyles = [
+    { time:'7 – 9 AM', platform:'TikTok', type:'Educational / Motivational', boost:'+35%' },
+    { time:'11 AM – 1 PM', platform:'Instagram', type:'Carousel / Before-After', boost:'+42%' },
+    { time:'5 – 7 PM', platform:'YouTube', type:'Shorts / Tutorials', boost:'+28%' },
+    { time:'8 – 10 PM', platform:'All', type:'Storytelling / Entertainment', boost:'+55%' },
+  ];
+
+  const scl = s => s.includes('Exploding') ? 'green' : s === 'Hot' ? 'amber' : 'blue';
+
   return (
     <motion.div key="trends-page" initial={{opacity:0}} animate={{opacity:1}} className="space-y-8">
-      <section className="mb-6">
+      <section className="mb-2">
         <motion.h1 initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="font-jakarta text-4xl md:text-6xl font-extrabold text-white mb-4 tracking-tight">
           Creator <span className="text-gradient">Intelligence</span> 🚀
         </motion.h1>
         <motion.p initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="text-lg text-slate-400 max-w-2xl">
-          Discover what's going viral in 2026. Leverage these AI-predicted trends to maximize your reach.
+          Discover what goes viral in 2026. Leverage AI-predicted trends to maximize your reach.
         </motion.p>
       </section>
 
+      {/* TRENDING NICHES */}
+      <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.15}} className="glass rounded-3xl p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-bold text-white text-xl font-jakarta flex items-center gap-2"><I n="travel_explore" c="text-purple-400"/> What Will Go Viral in 2026</h3>
+          <span className="badge badge-green text-[9px]">Live Data</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {categories.map((c, i) => {
+            const sc = scl(c.status);
+            return (
+              <motion.div key={c.name} initial={{opacity:0,scale:0.95}} animate={{opacity:1,scale:1}} transition={{delay:i*0.06}} className="p-5 bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-purple-500/30 rounded-2xl transition-all group relative overflow-hidden">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform"><I n={c.icon} c="text-purple-400 text-xl"/></div>
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-${sc}-500/10 text-${sc}-400 border border-${sc}-500/20`}>{c.status}</span>
+                </div>
+                <h4 className="font-bold text-white mb-2 text-sm">{c.name}</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold">Potential</p><p className="text-sm font-bold text-green-400">{c.potential}%</p></div>
+                  <div><p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold">Reach</p><p className="text-sm font-bold text-white">{c.reach}</p></div>
+                  <div><p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold">Growth</p><p className="text-sm font-bold text-blue-400">{c.growth}</p></div>
+                  <div><p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold">Competition</p><p className={`text-sm font-bold ${c.competition==='Low'?'text-green-400':c.competition==='High'?'text-red-400':'text-amber-400'}`}>{c.competition}</p></div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </motion.div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 space-y-8">
-          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.2}} className="glass rounded-3xl p-8">
-            <h3 className="font-bold text-white text-xl font-jakarta mb-6 flex items-center gap-2"><I n="travel_explore" c="text-purple-400"/> What Will Go Viral in 2026</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {trends.categories.slice(0,4).map((c, i) => (
-                <motion.div key={c.name} initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} transition={{delay: i * 0.1}} className="p-5 bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-purple-500/30 rounded-2xl transition-all group">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform"><I n={c.icon} c="text-purple-400 text-xl"/></div>
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${c.status.includes('Exploding') ? 'bg-green-500/10 text-green-400 border border-green-500/20 pulse-dot' : c.status === 'Growing' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>{c.status}</span>
-                  </div>
-                  <h4 className="font-bold text-white mb-1 truncate">{c.name}</h4>
-                  <div className="flex gap-4 mt-3">
-                    <div><p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Potential</p><p className="text-sm font-bold text-green-400">{c.potential}%</p></div>
-                    <div><p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Reach</p><p className="text-sm font-bold text-white">{c.reach}</p></div>
-                    <div><p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Growth</p><p className={`text-sm font-bold ${c.growth.startsWith('-') ? 'text-red-400' : 'text-blue-400'}`}>{c.growth}</p></div>
+        <div className="lg:col-span-7 space-y-8">
+
+          {/* Viral Formats */}
+          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.25}} className="glass rounded-3xl p-6">
+            <h3 className="font-bold text-white text-lg font-jakarta mb-5 flex items-center gap-2"><I n="movie_filter" c="text-pink-400"/> Fastest-Growing Viral Formats</h3>
+            <div className="space-y-3">
+              {formats.map((f, i) => (
+                <motion.div key={f.name} initial={{opacity:0,x:-10}} animate={{opacity:1,x:0}} transition={{delay:0.3+i*0.08}} className="flex gap-4 items-start p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{background:f.color+'18'}}><I n={f.icon} s={{fontSize:18,color:f.color}}/></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white mb-1">{f.name}</p>
+                    <p className="text-xs text-slate-400 leading-relaxed">{f.why}</p>
                   </div>
                 </motion.div>
               ))}
             </div>
           </motion.div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.3}} className="glass rounded-3xl p-6">
-                <h3 className="font-bold text-white text-lg font-jakarta mb-4 flex items-center gap-2"><I n="lightbulb" c="text-amber-400"/> AI Creator Tips</h3>
-                <ul className="space-y-4">
-                  {trends.tips.map((t, i) => (
-                    <li key={i} className="flex gap-3 items-start"><I n="check_circle" c="text-green-400 shrink-0" s={{fontSize:18}}/><p className="text-sm text-slate-300 leading-relaxed">{t}</p></li>
-                  ))}
-                </ul>
-             </motion.div>
-             <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.4}} className="glass rounded-3xl p-6">
-                <h3 className="font-bold text-white text-lg font-jakarta mb-4 flex items-center gap-2"><I n="tag" c="text-blue-400"/> Top Hashtags</h3>
-                <div className="flex flex-wrap gap-2">
-                  {trends.hashtags.map((h, i) => (
-                    <span key={i} className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold rounded-lg hover:bg-blue-500/20 transition-colors cursor-pointer">{h}</span>
-                  ))}
+
+          {/* Posting Windows */}
+          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.35}} className="glass rounded-3xl p-6">
+            <h3 className="font-bold text-white text-lg font-jakarta mb-5 flex items-center gap-2"><I n="schedule" c="text-cyan-400"/> Best Posting Windows</h3>
+            <div className="space-y-2">
+              {postStyles.map((p, i) => (
+                <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all">
+                  <span className="text-xs font-bold text-purple-400 w-24 shrink-0 tabular-nums">{p.time}</span>
+                  <span className="badge badge-blue text-[9px] shrink-0">{p.platform}</span>
+                  <span className="text-xs text-slate-300 flex-1">{p.type}</span>
+                  <span className="text-xs font-bold text-green-400">{p.boost}</span>
                 </div>
-             </motion.div>
-          </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* AI Creator Tips */}
+          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.4}} className="glass rounded-3xl p-6">
+            <h3 className="font-bold text-white text-lg font-jakarta mb-4 flex items-center gap-2"><I n="lightbulb" c="text-amber-400"/> AI Creator Tips</h3>
+            <ul className="space-y-3">
+              {tips.map((t, i) => (
+                <li key={i} className="flex gap-3 items-start"><I n="check_circle" c="text-green-400 shrink-0" s={{fontSize:18}}/><p className="text-sm text-slate-300 leading-relaxed">{t}</p></li>
+              ))}
+            </ul>
+          </motion.div>
         </div>
-        
-        <div className="lg:col-span-4 space-y-8">
-          <motion.div initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} transition={{delay:0.3}} className="glass rounded-3xl p-6">
-            <h3 className="font-bold text-white text-lg font-jakarta mb-5 flex items-center gap-2"><I n="moving" c="text-green-400"/> Viral Hooks (Top 3)</h3>
+
+        {/* RIGHT COLUMN */}
+        <div className="lg:col-span-5 space-y-8">
+
+          {/* Viral Hooks */}
+          <motion.div initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} transition={{delay:0.25}} className="glass rounded-3xl p-6">
+            <h3 className="font-bold text-white text-lg font-jakarta mb-5 flex items-center gap-2"><I n="moving" c="text-green-400"/> Viral Hooks</h3>
             <div className="space-y-3">
-              {trends.hooks.map((h, i) => (
-                <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors group cursor-copy">
-                  <div className="flex justify-between items-start">
-                    <p className="text-sm text-white font-medium italic leading-relaxed">"{h}"</p>
-                    <I n="content_copy" c="text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity text-sm ml-2 shrink-0"/>
+              {hooks.map((h, i) => (
+                <div key={i} onClick={() => copy(h, 'hook-'+i)} className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-green-500/20 hover:bg-white/[0.04] transition-all group cursor-pointer">
+                  <div className="flex justify-between items-start gap-2">
+                    <p className="text-sm text-white font-medium italic leading-relaxed flex-1">&ldquo;{h}&rdquo;</p>
+                    <I n={copied==='hook-'+i?'check':'content_copy'} c={copied==='hook-'+i?'text-green-400':'text-slate-600 group-hover:text-slate-300'} s={{fontSize:14}} />
                   </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Trending Hashtags */}
+          <motion.div initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} transition={{delay:0.35}} className="glass rounded-3xl p-6">
+            <h3 className="font-bold text-white text-lg font-jakarta mb-4 flex items-center gap-2"><I n="tag" c="text-blue-400"/> Trending Hashtags</h3>
+            <div className="flex flex-wrap gap-2">
+              {hashtags.map((h, i) => (
+                <span key={i} onClick={() => copy(h, 'tag-'+i)} className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all ${copied==='tag-'+i?'bg-green-500/20 border border-green-500/30 text-green-400':'bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20'}`}>
+                  {copied==='tag-'+i ? '✓ Copied' : h}
+                </span>
+              ))}
+            </div>
+            <button onClick={() => copy(hashtags.join(' '), 'all-tags')} className="mt-4 w-full py-2.5 rounded-xl bg-white/[0.04] border border-white/5 text-xs font-bold text-slate-300 hover:bg-white/[0.08] transition flex items-center justify-center gap-1.5">
+              <I n={copied==='all-tags'?'check':'content_copy'} s={{fontSize:14}}/> {copied==='all-tags'?'Copied!':'Copy All Hashtags'}
+            </button>
+          </motion.div>
+
+          {/* Fastest Growing Niches */}
+          <motion.div initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} transition={{delay:0.45}} className="glass rounded-3xl p-6">
+            <h3 className="font-bold text-white text-lg font-jakarta mb-4 flex items-center gap-2"><I n="local_fire_department" c="text-orange-400"/> Fastest Growing Niches</h3>
+            <div className="space-y-2">
+              {(trends.trendingNiches || ['fitness','finance','tech','education','comedy']).map((n, i) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full premium-gradient flex items-center justify-center text-[10px] font-bold text-white">{i+1}</span>
+                    <span className="text-sm font-semibold text-white capitalize">{n}</span>
+                  </div>
+                  <span className="text-xs font-bold text-green-400">+{90-i*12}%</span>
                 </div>
               ))}
             </div>
@@ -498,3 +691,5 @@ export const TrendsDashboard = () => {
     </motion.div>
   );
 };
+
+

@@ -1,320 +1,190 @@
 /**
- * AI Assistant — Rule-based response generator
- * Produces contextual suggestions based on analysis scores.
+ * AI Assistant — Rich, contextual rule-based response generator
  */
 
-/**
- * Generate an initial analysis response based on scores
- * @param {Object} result - Analysis result from scoringEngine
- * @param {Object} historyStats - Summary of user's past uploads
- * @returns {string} AI response text
- */
 export function generateAnalysisResponse(result, historyStats) {
-  if (!result) return "Upload some content and I'll analyze it for you!";
+  if (!result) return "Upload some content and I'll give you a full virality breakdown!";
+  const {totalScore, metrics={}, contentType, caption, platform} = result;
+  const {hookPercent=0,engagementPercent=0,captionPercent=0,pacingLevel,trendStatus} = metrics;
+  let r = '';
 
-  const { totalScore, metrics, contentType, caption } = result;
-  const { hookPercent, engagementPercent, captionPercent, pacingLevel, trendStatus } = metrics || {};
+  if(totalScore>=80) r=`🔥 Outstanding! Your content scores ${totalScore}/100 — this has serious viral potential. The algorithm will love it.`;
+  else if(totalScore>=65) r=`💪 Solid score of ${totalScore}/100! A few smart tweaks and this could easily hit the Explore/FYP page.`;
+  else if(totalScore>=45) r=`⚡ Your content scored ${totalScore}/100. There's good bones here — let me help you unlock its full potential.`;
+  else r=`📊 Score: ${totalScore}/100. Don't worry — I've identified the exact issues holding you back. Let's fix them step by step.`;
 
-  let response = '';
-
-// Overall assessment
-  if (totalScore >= 80) {
-    response += `Excellent work. Your content achieved an Audience Reach Score of ${totalScore}/100, indicating high viral potential. `;
-  } else if (totalScore >= 60) {
-    response += `Solid foundation. Your content scored ${totalScore}/100. With targeted optimizations, you can significantly increase audience reach. `;
-  } else if (totalScore >= 40) {
-    response += `Your content scored ${totalScore}/100. There are actionable areas for improvement to enhance viewer retention and engagement. `;
-  } else {
-    response += `Your content scored ${totalScore}/100. Let's analyze the metrics to identify the core areas holding back your virality. `;
+  if(historyStats?.totalUploads>1 && historyStats.lastUploads?.length>1) {
+    const prev=historyStats.lastUploads[1].score;
+    if(totalScore>prev) r+=`\n\n📈 You improved ${totalScore-prev} points over your last upload! Keep this momentum going.`;
+    else if(totalScore<prev) r+=`\n\n⬇️ This scored ${prev-totalScore} points lower than your previous upload. Let's identify why.`;
   }
 
-  // Personalization based on history
-  if (historyStats && historyStats.totalUploads > 1) {
-    const prevScore = historyStats.lastUploads.length > 1 ? historyStats.lastUploads[1].score : historyStats.averageScore;
-    if (totalScore > prevScore) {
-      response += `\n\nPerformance Trend: This is a ${totalScore - prevScore}-point improvement over your last upload. Your strategy adjustments are working.`;
-    } else if (totalScore < prevScore) {
-      response += `\n\nPerformance Trend: This scored ${prevScore - totalScore} points lower than your previous average. Let's look at the engagement triggers.`;
-    }
-  }
+  const scores=[{n:'hook',v:hookPercent},{n:'engagement',v:engagementPercent},{n:'caption',v:captionPercent}];
+  const weakest=scores.sort((a,b)=>a.v-b.v)[0];
 
-  // Find weakest area
-  const scores = [
-    { name: 'hook effectiveness', value: hookPercent || 0 },
-    { name: 'engagement prediction', value: engagementPercent || 0 },
-    { name: 'retention prediction', value: metrics.retentionPrediction || 0 },
-    { name: 'caption quality', value: captionPercent || 0 },
-  ];
-  scores.sort((a, b) => a.value - b.value);
-  const weakest = scores[0];
+  if(weakest.n==='hook'&&weakest.v<70) r+=`\n\n🎣 Your hook is the weakest area (${weakest.v}%). You lose most viewers in the first 2 seconds — fix this first for maximum impact.`;
+  else if(weakest.n==='engagement'&&weakest.v<70) r+=`\n\n💬 Engagement signals are low (${weakest.v}%). Try adding power words or a question to drive comments and shares.`;
+  else if(weakest.n==='caption'&&weakest.v<70) r+=`\n\n✍️ Your caption needs work (${weakest.v}%). Aim for 80-200 chars with a clear CTA.`;
 
-  if (weakest.name === 'hook effectiveness' && weakest.value < 70) {
-    response += `\n\nInsight: Hook effectiveness is low (${weakest.value}%). Optimize the first 3 seconds with a pattern interrupt or direct question.`;
-  } else if (weakest.name === 'engagement prediction' && weakest.value < 70) {
-    response += `\n\nInsight: Engagement triggers are underperforming (${weakest.value}%). Incorporate conversational prompts or high-arousal keywords.`;
-  } else if (weakest.name === 'retention prediction' && weakest.value < 70) {
-    response += `\n\nInsight: Estimated retention is low (${weakest.value}%). Improve pacing or cut dead air to maintain viewer interest throughout.`;
-  } else if (weakest.name === 'caption quality' && weakest.value < 70) {
-    response += `\n\nInsight: Caption quality is sub-optimal (${weakest.value}%). Aim for concise, SEO-rich copy with a clear call-to-action.`;
-  }
+  if(trendStatus==='Cold') r+=`\n\n❄️ No trend alignment detected. Adding #fyp, #viral, and niche hashtags could 3x your discoverability.`;
+  if(pacingLevel==='Low'&&contentType==='video') r+=`\n\n⏱️ Video pacing is slow. Consider trimming to under 30 seconds — it can double completion rate.`;
 
-  if (trendStatus === 'Cold') {
-    response += `\n\nNote: Trend alignment is currently low. Consider integrating trending topics or relevant hashtags to boost algorithm discovery.`;
-  }
+  const tips={tiktok:'Peak TikTok posting: 7-9 PM. First 3 seconds are everything.',instagram:'Instagram peak: 11 AM-1 PM. Consistent aesthetic boosts saves.',youtube:'YouTube Shorts: Educational hooks get 40% more watch time.'};
+  if(platform&&tips[platform]) r+=`\n\n💡 ${tips[platform]}`;
 
-  if (pacingLevel === 'Low' && contentType === 'video') {
-    response += `\n\n⏱️ Pacing is slow. Consider trimming your video to under 30 seconds for optimal engagement.`;
-  }
-
-  return response;
+  return r;
 }
 
-/**
- * Respond to a user chat message based on context
- * @param {string} message - User's chat message
- * @param {Object|null} result - Current analysis result (if any)
- * @param {Object} historyStats - Summary of user's past uploads
- * @param {Object} trends - Current trends from trendsEngine
- * @returns {string} AI response
- */
 export function generateChatResponse(message, result, historyStats, trends) {
-  if (!message || message.trim().length === 0) {
-    return "How can I help you optimize your content?";
+  if(!message?.trim()) return "How can I help you go viral today?";
+  const l=message.toLowerCase().trim();
+
+  // History / Past projects
+  if(/previous|past|history|my project|my upload/i.test(l)) {
+    if(!historyStats||historyStats.totalUploads===0) return "You haven't analyzed any content yet. Upload something to get started!";
+    let r=`📁 You've analyzed ${historyStats.totalUploads} pieces of content so far.\n\nRecent uploads:\n`;
+    historyStats.lastUploads.forEach((u,i)=>r+=`${i+1}. ${(u.fileName||'Unknown').substring(0,25)} — Score: ${u.score}/100 (${u.platform})\n`);
+    r+=`\nYour average score: ${historyStats.averageScore}/100\nCommon weakness: ${historyStats.commonWeakness}`;
+    return r;
   }
 
-  const lower = message.toLowerCase().trim();
-
-  // Smart Query: Previous projects
-  if (/previous project|past project|my history|my project|past upload/i.test(lower)) {
-    if (!historyStats || historyStats.totalUploads === 0) {
-      return "You haven't uploaded any projects yet. Upload some content so I can analyze it!";
-    }
-    let response = `📁 You've analyzed ${historyStats.totalUploads} projects so far.\n\nHere are your most recent ones:\n`;
-    historyStats.lastUploads.forEach((u, i) => {
-      response += `${i+1}. ${(u.fileName || 'Unknown').substring(0,20)}... (Score: ${u.score}/100, ${u.platform})\n`;
-    });
-    response += `\nYour average score is ${historyStats.averageScore}/100.`;
-    return response;
+  // Progress
+  if(/progress|improve based|how have i|getting better/i.test(l)) {
+    if(!historyStats||historyStats.totalUploads<2) return "I need at least 2 analyses to show your progress. Keep uploading!";
+    const wk=historyStats.commonWeakness;
+    return `📈 Based on your ${historyStats.totalUploads} uploads:\n\nAverage score: ${historyStats.averageScore}/100\nBiggest pattern: Your **${wk}** is consistently your weakest metric.\n\n${wk==='hook'?'👉 Focus: Start your next video with a bold question or shocking stat in the first 1-2 seconds.':wk==='caption'?'👉 Focus: Use 80-200 char captions with clear CTAs like "Save this" or "Tag someone".':'👉 Focus: Add more engagement triggers — power words like "wait", "secret", or direct questions.'}`;
   }
 
-  // Smart Query: Improvement based on past
-  if (/improve based on.*past|how has my content improved|improve.*past upload|my progress/i.test(lower)) {
-    if (!historyStats || historyStats.totalUploads === 0) {
-      return "I need more data to analyze your progress. Try analyzing a few more uploads first!";
-    }
-    let response = `📈 Looking at your past ${historyStats.totalUploads} uploads:\n\n`;
-    response += `Your average virality score is ${historyStats.averageScore}/100.\n`;
-    response += `Your most common weakness seems to be your **${historyStats.commonWeakness}**.\n\n`;
-    if (historyStats.commonWeakness === 'hook') {
-      response += `👉 Focus on starting your next video with a bold statement or visual within the first 3 seconds!`;
-    } else if (historyStats.commonWeakness === 'caption') {
-      response += `👉 Try using more engaging captions with clear calls-to-action and trending keywords.`;
-    } else {
-      response += `👉 Work on adding more engagement triggers like 'wait for it' or questions in your videos.`;
-    }
-    return response;
+  // Content ideas
+  if(/idea|what should i post|content next|viral idea/i.test(l)) {
+    const kw=trends?.trendingKeywords||['AI tools','money hacks','storytime'];
+    const fmt=trends?.trendingFormats?.[0]||'fast cuts with text overlay';
+    return `💡 Based on current trends, here are 3 viral content ideas:\n\n1. **"${kw[0]}" with ${fmt}**\n   Hook: "Nobody is talking about this ${kw[0]} hack…"\n\n2. **Controversial take on "${kw[1]}"**\n   Hook: "Unpopular opinion: everything you know about ${kw[1]} is wrong."\n\n3. **"Day in the life" featuring "${kw[2]}"**\n   Hook: "POV: You just discovered the real secret to ${kw[2]}…"\n\n📌 Use ${trends?.trendingHashtags?.tiktok?.[0]||'#fyp'} on all of them!`;
   }
 
-  // Smart Query: Viral ideas / Next post ideas
-  if (/viral idea|post next|content idea|idea based on trend|what should i post/i.test(lower)) {
-    let response = `💡 Based on current trends${historyStats ? ' and your history' : ''}, here are 3 personalized content ideas:\n\n`;
-    
-    const trendingKW = trends?.trendingKeywords || ['AI hacks', 'storytime', 'money tips'];
-    const format = trends?.trendingFormats?.[0] || 'fast cuts';
-    
-    response += `1. **Idea:** Create a short video about "${trendingKW[0]}" using ${format}.\n`;
-    response += `   **Hook:** "Don't scroll if you want to master ${trendingKW[0]} in 2026..."\n\n`;
-    
-    response += `2. **Idea:** Share a controversial opinion or tip about "${trendingKW[1]}".\n`;
-    response += `   **Hook:** "The biggest lie you've been told about ${trendingKW[1]}..."\n\n`;
-    
-    response += `3. **Idea:** A "Day in the life" or behind-the-scenes focusing on "${trendingKW[2]}".\n`;
-    response += `   **Hook:** "POV: You just discovered the ultimate hack for ${trendingKW[2]}..."\n\n`;
-    
-    response += `Pro tip: Make sure to use hashtags like ${trends?.trendingHashtags?.tiktok?.[0] || '#fyp'}!`;
-    return response;
-  }
-
-  // Greeting patterns
-  if (/^(hi|hello|hey|sup|yo|what's up|howdy)/i.test(lower)) {
+  // Greeting
+  if(/^(hi|hello|hey|sup|yo|what'?s up)/i.test(l)) {
     return result
-      ? `Hey! 👋 I see you've analyzed some content (score: ${result.totalScore}/100). Want me to suggest improvements?`
-      : "Hey there! 👋 Upload some content and I'll help you maximize its viral potential!";
+      ? `Hey! 👋 Your content scored ${result.totalScore}/100. Want tips to push it higher? Ask me anything!`
+      : "Hey! 👋 I'm your AI viral coach. Upload some content and I'll analyze it — or ask me anything about going viral!";
   }
 
-  // Hook-related questions & Action commands
-  if (/hook|intro|opening|start|beginning|first (second|frame|word)/i.test(lower)) {
-    const hooks = [
-      '"Stop scrolling — this changes everything."',
-      '"I tested this for 30 days and here\'s what happened..."',
-      '"The secret nobody talks about is..."',
-      '"Wait — did you know this about [topic]?"',
-      '"POV: You just discovered the best hack for..."',
-    ];
-    let response = "🎣 Here are 3 high-converting hook templates customized for you:\n\n";
-    hooks.slice(0, 3).forEach((h, i) => response += `${i + 1}. ${h}\n`);
-    if (result && result.metrics?.hookPercent < 60) {
-      response += `\nYour current hook scores ${result.metrics.hookPercent}%. Using one of these patterns could boost it significantly!`;
-    }
-    return response;
+  // Hook advice
+  if(/hook|intro|opening|first (second|frame|3 sec)/i.test(l)) {
+    const hooks=['\"Stop scrolling — this will change how you think about [topic].\"','\"I tested this for 30 days. Here\'s what nobody tells you…\"','\"The reason you\'re not going viral is this ONE thing.\"','\"Wait until the end — this gets insane.\"','\"POV: You just discovered the secret everyone\'s hiding.\"'];
+    let r="🎣 5 high-converting hook templates:\n\n";
+    hooks.forEach((h,i)=>r+=`${i+1}. ${h}\n`);
+    if(result?.metrics?.hookPercent<60) r+=`\nYour hook scores ${result.metrics.hookPercent}%. Using one of these patterns could add 15-25 points to your score!`;
+    return r;
   }
 
-  // Caption-related questions & Action commands
-  if (/caption|text|copy|write|rewrite|description/i.test(lower)) {
-    if (result && result.caption) {
-      return generateCaptionRewrite(result.caption, result);
-    }
-    return "✍️ I can rewrite your caption! But first, upload a video or text with an existing caption so I have something to work with.";
+  // Caption rewrite
+  if(/caption|rewrite|copy|description|text/i.test(l)) {
+    if(result?.caption) return rewriteCaption(result.caption,result);
+    return "✍️ Share your caption with me and I'll rewrite it with:\n• A compelling hook opener\n• Power words that drive engagement\n• A clear CTA (Save / Comment / Share)\n• Trending hashtags\n\nPaste your caption or upload content with a caption!";
   }
 
-  // Hashtag questions & Action commands
-  if (/hashtag|tag|#|trending keywords/i.test(lower)) {
-    const platform = result?.platform || 'tiktok';
-    const hashtags = getHashtagSuggestions(platform);
-    return `#️⃣ Recommended trending hashtags for ${platform}:\n\n${hashtags.join('  ')}\n\nMix 2-3 broad tags with 2-3 niche-specific ones for best reach.`;
+  // Hashtags
+  if(/hashtag|#|tag|trending keyword/i.test(l)) {
+    const p=result?.platform||'tiktok';
+    const tags=trends?.trendingHashtags?.[p]||['#fyp','#viral','#trending'];
+    const niche=trends?.trendingHashtags?.tiktok?.slice(5)||['#explore','#blowthisup'];
+    return `#️⃣ Optimal hashtag strategy for ${p}:\n\n**Broad reach (2-3 tags):**\n${tags.slice(0,3).join('  ')}\n\n**Niche specific (3-4 tags):**\n${niche.slice(0,3).join('  ')}\n\n**Pro tip:** Mix 2-3 big hashtags (1M+ posts) with 3-4 smaller niche ones for best algorithm pickup. Total: 5-8 hashtags optimal.`;
   }
 
-  // Engagement questions & Action commands
-  if (/engage|engagement|likes|comments|shares|views|audience|reach/i.test(lower)) {
-    let response = "📈 Pro Engagement Strategies:\n\n";
-    response += "1. Ask a controversial or highly relatable question in your caption to drive comments.\n";
-    response += "2. Use \"Save this for later\" — saves boost the algorithm ranking massively.\n";
-    response += "3. Reply to comments within the first hour to show the algorithm your video is active.\n";
-    response += "4. Post during peak hours (6-9 AM, 12-2 PM, 7-10 PM).\n";
-    response += "5. Add a CTA: \"Tag someone who needs this\"";
-    if (result && result.metrics?.engagementPercent < 60) {
-      response += `\n\nYour engagement score is currently ${result.metrics.engagementPercent}%. Focus on adding more engagement triggers!`;
-    }
-    return response;
+  // Engagement
+  if(/engage|like|comment|share|views|reach|algorithm/i.test(l)) {
+    let r="📈 Top 6 Engagement Boosters:\n\n";
+    r+="1. Ask a divisive question in your caption → sparks comments\n";
+    r+="2. Add \"Save this\" — saves are the #1 signal on Instagram\n";
+    r+="3. Reply to every comment in the first 60 minutes\n";
+    r+="4. Use 'Part 2' hooks → \"Follow to see what happened next…\"\n";
+    r+="5. Post during peak hours → "+((trends?.peakPostingTimes?.tiktok||['7-10 PM']).join(', '))+"\n";
+    r+="6. End with a CTA: \"Tag someone who needs this\"\n";
+    if(result?.metrics?.engagementPercent<60) r+=`\nYour engagement is at ${result.metrics.engagementPercent}% — adding 2-3 of these could double it.`;
+    return r;
   }
 
-  // Pacing / video length & Action commands
-  if (/pace|pacing|speed|fast|slow|long|short|duration|length|trim|cut|edit/i.test(lower)) {
-    let response = "⏱️ Optimal video pacing advice:\n\n";
-    response += "• TikTok sweet spot: 7-15 seconds for max completion rate.\n";
-    response += "• Instagram Reels: 15-30 seconds performs best.\n";
-    response += "• YouTube Shorts: 30-60 seconds ideal.\n";
-    response += "• Action: Cut every 2-3 seconds to maintain visual attention.\n";
-    response += "• Action: Front-load the value — put your best content in the first 3 seconds.";
-    if (result && result.duration > 60) {
-      response += `\n\nYour video is ${Math.round(result.duration)}s — consider trimming to under 30s for better retention.`;
-    }
-    return response;
-  }
-
-  // Thumbnail questions & Action commands
-  if (/thumbnail|thumb|preview|cover|image/i.test(lower)) {
-    return "🖼️ Thumbnail Audit & Best Practices:\n\n1. Use a close-up face with an expressive emotion.\n2. Add bold, contrasting text (3-4 words max) that complements the hook.\n3. Use bright, saturated colors to stand out in the feed.\n4. Create visual contrast with the background.\n5. Include an element of curiosity or surprise (like pointing at something).";
-  }
-
-  // Trend questions
-  if (/trend|trending|popular|viral|algorithm/i.test(lower)) {
-    return "🔥 Trending content strategies:\n\n1. Use trending audio/sounds within 24-48 hours of emergence\n2. Put your unique spin on popular formats\n3. Ride news cycles — react to current events\n4. Monitor the Discover/Explore page daily\n5. Use trending hashtags but make them relevant\n\nPro tip: Early adopters of trends get 3-5x more reach!";
+  // Pacing / video length
+  if(/pac|speed|slow|fast|trim|cut|edit|duration|length/i.test(l)) {
+    let r="⏱️ Video pacing formula by platform:\n\n";
+    r+="• **TikTok sweet spot:** 7-15s (max completion rate)\n";
+    r+="• **Instagram Reels:** 15-30s performs best\n";
+    r+="• **YouTube Shorts:** 30-60s — value-packed\n";
+    r+="\n**Editing rules:**\n• Cut every 2-3 seconds to maintain attention\n• Front-load your best moment in the first 3 seconds\n• Use jump cuts instead of fades";
+    if(result?.duration>60) r+=`\n\n⚠️ Your video is ${Math.round(result.duration)}s — consider trimming to under 30s for +40% completion rate.`;
+    return r;
   }
 
   // Score improvement
-  if (/score|improve|better|boost|increase|higher|more|optimize/i.test(lower)) {
-    if (result) {
-      return generateImprovementPlan(result);
-    }
-    return "📊 To get a high virality score:\n\n1. Upload a video (videos score highest)\n2. Keep it 7-30 seconds\n3. Write a compelling caption with engagement keywords\n4. Start with a strong hook\n5. Add trending hashtags\n\nUpload your content and I'll give you specific recommendations!";
+  if(/score|boost|improve|higher|better|optimize|fix/i.test(l)) {
+    if(result) return improvementPlan(result);
+    return "📊 Formula for a high virality score:\n\n1. Upload a short video (7-30s) — videos score highest\n2. Write a caption with 80-200 characters and a CTA\n3. Start with a question or bold statement hook\n4. Add 5-8 trending hashtags\n5. Post at peak hours\n\nUpload content and I'll give you a specific plan!";
   }
 
-  // Platform-specific
-  if (/tiktok|instagram|reels|youtube|shorts|platform/i.test(lower)) {
-    return "📱 Platform optimization tips:\n\n**TikTok:** Fast pace, trending sounds, 7-15s ideal\n**Instagram Reels:** Polished visuals, 15-30s, strong aesthetic\n**YouTube Shorts:** Value-packed, 30-60s, educational or entertaining\n\nEach platform's algorithm favors different content styles. Choose the platform that matches your content's strength!";
+  // Platform tips
+  if(/tiktok|instagram|reel|youtube|platform|short/i.test(l)) {
+    return "📱 Platform-specific strategies:\n\n**TikTok:** Fast-paced, trending audio, 7-15s ideal. Duet and stitch to ride existing viral content.\n\n**Instagram Reels:** Polished visuals, 15-30s. Carousel posts get 3x more reach. Save = #1 signal.\n\n**YouTube Shorts:** Educational or entertaining, 30-60s. Clear thumbnail with face. Consistent niche is key.\n\nChoose the platform where YOUR content style naturally shines!";
   }
 
-  // Fallback — general help
-  if (result) {
-    return `I'm here to help optimize your content (current score: ${result.totalScore}/100). You can ask me about:\n\n• Improving your hook\n• Rewriting your caption\n• Hashtag suggestions\n• Pacing and video length\n• Engagement strategies\n• Trending tips\n\nWhat would you like to focus on?`;
+  // Thumbnail
+  if(/thumbnail|thumb|cover|preview/i.test(l)) {
+    return "🖼️ Thumbnail blueprint for maximum CTR:\n\n1. Close-up face with expressive emotion (surprise, shock, joy)\n2. Bold 3-4 word text with high contrast (white on dark or vice versa)\n3. Bright, saturated colors — avoid muddy/dark thumbnails\n4. Point at something or look off-screen (creates curiosity gap)\n5. Test 2-3 thumbnails (A/B test is worth it)\n\nPro tip: The thumbnail + first 3 seconds are your 2 most important conversion points.";
   }
 
-  return "I'm your AI content optimization assistant! Here's what I can help with:\n\n• 🎣 Hook writing\n• ✍️ Caption optimization\n• #️⃣ Hashtag suggestions\n• ⏱️ Pacing advice\n• 📈 Engagement strategies\n• 🔥 Trend analysis\n\nUpload your content first, then ask me anything!";
-}
-
-/**
- * Generate a caption rewrite suggestion
- */
-function generateCaptionRewrite(caption, result) {
-  const score = result?.metrics?.captionPercent || 50;
-  let response = `✍️ Current caption analysis (score: ${score}%):\n"${caption.substring(0, 100)}${caption.length > 100 ? '...' : ''}"\n\n`;
-
-  if (caption.length < 40) {
-    response += "⚠️ Too short! Expand with more context and a CTA.\n\n";
-  } else if (caption.length > 300) {
-    response += "⚠️ Too long! Trim to the essential message.\n\n";
+  // ── Dynamic fallback with result context ──
+  if(result) {
+    const score=result.totalScore;
+    const weakest=[{n:'hook',v:result.metrics?.hookPercent||0},{n:'engagement',v:result.metrics?.engagementPercent||0},{n:'caption',v:result.metrics?.captionPercent||0}].sort((a,b)=>a.v-b.v)[0];
+    const dynamicTips=[
+      `Your content scored **${score}/100**. The biggest opportunity is your **${weakest.n}** (${weakest.v}%) — improving this alone could add 15-25 points.\n\nTry asking me:\n• "How do I fix my ${weakest.n}?"\n• "Rewrite my caption"\n• "Give me viral hooks for ${result.platform||'TikTok'}"`,
+      `I've analyzed your upload — **${score}/100**. ${score>=70?'Strong foundation!':'Room to grow.'}\n\nQuick wins I see:\n${weakest.v<60?`1. Your ${weakest.n} is at ${weakest.v}% — that's the #1 thing holding you back`:'1. Fine-tune your hook timing'}\n2. ${result.metrics?.trendStatus==='Cold'?'Add trending hashtags (#fyp #viral + niche tags)':'Keep riding the current trend wave'}\n3. ${result.contentType==='video'&&result.duration>45?'Trim the video to under 30s for better retention':'Add a stronger CTA at the end'}\n\nWhat should we tackle first?`,
+      `Score: **${score}**/100 | Platform: **${(result.platform||'tiktok').charAt(0).toUpperCase()+(result.platform||'tiktok').slice(1)}** | Weakest: **${weakest.n}** (${weakest.v}%)\n\nI can help you:\n🎣 Write power hooks that stop the scroll\n✍️ Rewrite your caption with proven CTAs\n📈 Build an improvement plan for +${Math.min(30,100-score)} points\n#️⃣ Generate a hashtag strategy\n\nWhat's your biggest challenge right now?`,
+    ];
+    return dynamicTips[Math.floor(Date.now()/60000)%dynamicTips.length];
   }
 
-  response += "Suggested rewrites:\n\n";
-
-  // Generate contextual rewrites
-  const hooks = [
-    "Stop scrolling — ",
-    "You need to see this → ",
-    "The truth about this is... ",
-    "Wait for it 👀 ",
+  // ── No result — varied helpful responses ──
+  const hour=new Date().getHours();
+  const greeting=hour<12?'Good morning':'Good evening';
+  const trendKw=trends?.trendingKeywords?.[0]||'AI tools';
+  const trendKw2=trends?.trendingKeywords?.[1]||'productivity hacks';
+  const noResultReplies=[
+    `${greeting}! 👋 Ready to create something viral?\n\nHere's what's trending right now:\n🔥 **${trendKw}** — exploding on TikTok\n📈 **${trendKw2}** — high engagement on Reels\n\nUpload your content and I'll give you a personalized score + improvement plan. Or ask me:\n• "Give me viral content ideas"\n• "What hooks are working right now?"\n• "Best hashtags for TikTok"`,
+    `Hey! 👋 I'm your AI content strategist.\n\nToday's hot insight: **${trendKw}** content is seeing +240% engagement growth. Creators posting short storytelling formats are getting 3-5× more reach.\n\nWant me to:\n🎣 Generate hook ideas for your niche?\n💡 Suggest viral content formats?\n📊 Analyze your next post before publishing?\n\nUpload content or ask away!`,
+    `${greeting}! Let's make your next post go viral. 🚀\n\nQuick pulse on 2026 trends:\n• Short-form storytelling → highest completion rates\n• **${trendKw}** + **${trendKw2}** → fastest growing niches\n• POV content → 200% more shares than talking heads\n\nI can analyze uploads, rewrite captions, suggest hooks, or build a full content strategy. What do you need?`,
   ];
-
-  const ctas = [
-    "\n\n💾 Save this for later | Follow for more",
-    "\n\n👇 Drop a comment if you agree",
-    "\n\n🔗 Share this with someone who needs it",
-  ];
-
-  const hook = hooks[caption.length % hooks.length];
-  const cta = ctas[caption.length % ctas.length];
-  const core = caption.substring(0, 80).replace(/^(the |a |so |i )/i, '');
-
-  response += `1. "${hook}${core}${cta}"\n\n`;
-  response += `2. "POV: ${core} 🔥 #fyp #viral"\n\n`;
-  response += `3. "Nobody talks about this → ${core} 💡"`;
-
-  return response;
+  return noResultReplies[Math.floor(Date.now()/45000)%noResultReplies.length];
 }
 
-/**
- * Generate a specific improvement plan based on scores
- */
-function generateImprovementPlan(result) {
-  const { totalScore, metrics } = result;
-  const improvements = [];
-
-  if (metrics.hookPercent < 70) {
-    improvements.push(`• **Hook (${metrics.hookPercent}%):** Start with a question, command, or shocking statement. First 1-2 seconds are critical.`);
-  }
-  if (metrics.captionPercent < 70) {
-    improvements.push(`• **Caption (${metrics.captionPercent}%):** Aim for 80-200 characters. Include a CTA and engagement keywords.`);
-  }
-  if (metrics.engagementPercent < 70) {
-    improvements.push(`• **Engagement (${metrics.engagementPercent}%):** Add words like "wait", "secret", "you won't believe" to boost curiosity.`);
-  }
-  if (metrics.pacingLevel === 'Low') {
-    improvements.push(`• **Pacing (Low):** Trim video to under 30 seconds. Cut every 2-3 seconds.`);
-  }
-  if (metrics.trendStatus === 'Cold') {
-    improvements.push(`• **Trends (Cold):** Add trending hashtags: #fyp #viral #trending`);
-  }
-  if (metrics.thumbnailPercent < 70) {
-    improvements.push(`• **Thumbnail (${metrics.thumbnailPercent}%):** Use a close-up face, bold text, bright colors.`);
-  }
-
-  if (improvements.length === 0) {
-    return `🎯 Your score is ${totalScore}/100 — that's great! Fine-tune by:\n\n• Experimenting with different hook styles\n• A/B testing caption variations\n• Posting at peak engagement hours\n• Engaging with comments in the first hour`;
-  }
-
-  return `📋 Improvement plan for your content (${totalScore}/100):\n\n${improvements.join('\n')}\n\nFocus on the lowest-scoring area first for the biggest impact!`;
+function rewriteCaption(caption, result) {
+  const sc=result?.metrics?.captionPercent||50;
+  const preview=caption.substring(0,100)+(caption.length>100?'…':'');
+  let r=`\u270D\uFE0F Caption analysis (${sc}% quality score):\n"${preview}"\n\n`;
+  if(caption.length<40) r+="⚠️ Too short — expand with context and a CTA.\n\n";
+  else if(caption.length>300) r+="⚠️ Too long — trim to essentials.\n\n";
+  const core=caption.replace(/^(the |a |so |i |and )/i,'').substring(0,70);
+  const hooks=["Stop scrolling → ","You need to see this: ","Wait — ","POV: "];
+  const ctas=["\n\n💾 Save this for later | Follow for more tips","\n\n👇 Drop a comment if you relate","\n\n🔗 Share with someone who needs this"];
+  const h=hooks[caption.length%hooks.length];
+  const c=ctas[caption.length%ctas.length];
+  r+="**3 optimized rewrites:**\n\n";
+  r+=`1. "${h}${core}${c}"\n\n`;
+  r+=`2. "POV: ${core} \uD83D\uDC40 #fyp #viral"\n\n`;
+  r+=`3. "Nobody talks about this \u2192 ${core} \uD83D\uDCA1"\n\n`;
+  r+="Pick the one that fits your tone and A/B test the others!";
+  return r;
 }
 
-/**
- * Get hashtag suggestions based on platform
- */
-function getHashtagSuggestions(platform) {
-  const common = ['#fyp', '#viral', '#trending', '#explore'];
-  const platformTags = {
-    tiktok: ['#tiktok', '#foryoupage', '#tiktokviral', '#fypage', '#blowthisup'],
-    instagram: ['#reels', '#instareels', '#reelsinstagram', '#explorepage', '#instagood'],
-    youtube: ['#shorts', '#youtubeshorts', '#subscribe', '#youtube', '#shortsviral'],
-  };
-  return [...common, ...(platformTags[platform] || platformTags.tiktok)];
+function improvementPlan(result) {
+  const {totalScore,metrics={}} = result;
+  const steps=[];
+  if(metrics.hookPercent<70) steps.push(`🎣 Hook (${metrics.hookPercent}%): Lead with a bold question or shocking statement. Critical — fix first.`);
+  if(metrics.captionPercent<70) steps.push(`✍️ Caption (${metrics.captionPercent}%): Rewrite with 80-200 chars, power words, and a clear CTA.`);
+  if(metrics.engagementPercent<70) steps.push(`💬 Engagement (${metrics.engagementPercent}%): Add "wait for it", ask a question, or use "Part 2" hooks.`);
+  if(metrics.pacingLevel==='Low') steps.push(`⏱️ Pacing: Trim to under 30s and cut every 2-3 seconds.`);
+  if(metrics.trendStatus==='Cold') steps.push(`🔥 Trends: Add #fyp #viral + 3-4 niche hashtags.`);
+  if(metrics.thumbnailPercent<70) steps.push(`🖼️ Thumbnail (${metrics.thumbnailPercent}%): Use expressive face + bold 3-word text + bright colors.`);
+  if(steps.length===0) return `🎯 Your score is ${totalScore}/100 — excellent! Fine-tune with:\n• A/B test 2 different hooks\n• Try posting at different times\n• Reply to all comments in first hour`;
+  return `📋 Improvement plan for ${totalScore}/100:\n\n${steps.map((s,i)=>`${i+1}. ${s}`).join('\n')}\n\nTackle these in order — the first one always has the biggest impact!`;
 }

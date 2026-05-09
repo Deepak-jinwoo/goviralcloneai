@@ -1,92 +1,47 @@
 /**
- * Suggestions Engine — Generates dynamic improvement suggestions
- * based on analysis results and scores.
+ * Suggestions Engine — Platform-aware, score-adaptive AI enhancement cards
  */
+const COLORS={hook:'purple-400',caption:'green-400',engagement:'blue-400',pacing:'cyan-400',thumbnail:'amber-400',hashtags:'pink-400',trend:'red-400'};
 
-/**
- * Suggestions Engine — Generates dynamic actionable improvement suggestions
- * based on analysis results and scores.
- */
+const S=(cat,icon,label,desc,cmd)=>({icon,label,desc,color:COLORS[cat]||'purple-400',actionCommand:cmd});
 
-const CATEGORY_COLORS = {
-  hook: 'primary',
-  caption: 'green-400',
-  engagement: 'blue-400',
-  pacing: 'tertiary',
-  thumbnail: 'amber-400',
-  hashtags: 'pink-400',
-};
+export function generateSuggestions(result,variation=0) {
+  if(!result?.metrics) return [];
+  const {metrics:m, totalScore:sc, platform='tiktok'} = result;
+  const pool=[];
 
-/**
- * Generate suggestions based on analysis result
- * @param {Object} result - Analysis result from scoringEngine
- * @param {number} variation - Variation index for regeneration
- * @returns {Array} Array of suggestion objects {icon, label, desc, color, actionCommand}
- */
-export function generateSuggestions(result, variation = 0) {
-  if (!result || !result.metrics) return [];
+  // Hook suggestions
+  if(m.hookPercent<50) pool.push(S('hook','bolt','Complete Hook Overhaul','First 2 seconds are failing. Get 3 proven power hooks.','Give me 5 power hooks'));
+  else if(m.hookPercent<75) pool.push(S('hook','bolt','Strengthen Your Hook','Add urgency or curiosity to boost retention.','Give me 5 power hooks'));
+  else pool.push(S('hook','bolt','A/B Test Your Hook','Try an alternate hook variation to maximize reach.','Give me 5 power hooks'));
 
-  const { metrics, totalScore } = result;
-  const suggestions = [];
+  // Caption suggestions
+  if(m.captionPercent<50) pool.push(S('caption','edit_note','Rewrite Entire Caption','Caption is hurting your score. Let me rebuild it.','Rewrite my caption'));
+  else if(m.captionPercent<75) pool.push(S('caption','edit_note','Optimize Caption CTA','Add a compelling call-to-action to drive saves.','Rewrite my caption'));
+  else pool.push(S('caption','edit_note','Polish Caption Copy','Fine-tune wording and emoji placement.','Rewrite my caption'));
 
-  const addSuggestion = (cat, icon, label, desc, actionCommand) => {
-    suggestions.push({ icon, label, desc, color: CATEGORY_COLORS[cat] || 'primary', actionCommand });
-  };
+  // Engagement
+  if(m.engagementPercent<50) pool.push(S('engagement','forum','Boost Engagement Urgently','Missing key triggers. Add power words now.','How do I boost engagement?'));
+  else if(m.engagementPercent<75) pool.push(S('engagement','forum','Add Engagement Triggers','Include "wait for it" or a question to drive comments.','How do I boost engagement?'));
 
-  // Score < 40: Strong corrections
-  if (totalScore < 40) {
-    if (metrics.hookPercent < 50) {
-      addSuggestion('hook', 'bolt', 'Complete Hook Overhaul', 'Your hook is weak. Let me generate 3 high-converting hook ideas.', 'Give me 3 power hooks');
-    }
-    if (metrics.captionPercent < 50) {
-      addSuggestion('caption', 'edit_note', 'Rewrite Entire Caption', 'Your caption is not engaging enough. I can rewrite it completely.', 'Rewrite my caption completely');
-    }
-    if (metrics.trendStatus === 'Cold') {
-      addSuggestion('hashtags', 'tag', 'Trending Keywords Needed', 'You are missing trends. Let me find the top hashtags for your niche.', 'Give me trending hashtags');
-    }
-    if (metrics.engagementPercent < 40) {
-      addSuggestion('engagement', 'forum', 'Major Engagement Fix', 'Add clear CTAs and power words. Ask me how.', 'How can I boost engagement?');
-    }
-  } 
-  // Score 40-70: Optimization suggestions
-  else if (totalScore >= 40 && totalScore <= 70) {
-    if (metrics.hookPercent < 70) {
-      addSuggestion('hook', 'bolt', 'Power Hook', 'Strengthen your hook with urgency or curiosity.', 'Give me 3 power hooks');
-    }
-    if (metrics.captionPercent < 70) {
-      addSuggestion('caption', 'edit_note', 'Caption Optimization', 'Add more CTA elements and emojis to your caption.', 'Rewrite my caption');
-    }
-    if (metrics.engagementPercent < 70) {
-      addSuggestion('engagement', 'forum', 'Boost Engagement', 'Include "wait for it" or questions to drive comments.', 'How can I boost engagement?');
-    }
-    if (metrics.pacingLevel === 'Low') {
-      addSuggestion('pacing', 'timer', 'Fix Pacing', 'Your video is too slow. Trim dead air and cut faster.', 'How should I pace this video?');
-    }
-    if (metrics.trendStatus !== 'Hot') {
-      addSuggestion('hashtags', 'tag', 'Optimize Hashtags', 'Add 2-3 trending hashtags to improve discoverability.', 'Give me trending hashtags');
-    }
-  } 
-  // Score > 70: Fine-tuning suggestions
-  else {
-    if (metrics.hookPercent < 90) {
-      addSuggestion('hook', 'bolt', 'Hook Polish', 'Try an alternative bold hook for A/B testing.', 'Give me 3 power hooks');
-    }
-    if (metrics.captionPercent < 90) {
-      addSuggestion('caption', 'edit_note', 'Caption Polish', 'Fine-tune your text layout and spacing.', 'Rewrite my caption');
-    }
-    if (metrics.thumbnailPercent < 90) {
-      addSuggestion('thumbnail', 'image', 'Thumbnail Polish', 'Increase contrast and text size on your cover image.', 'How can I improve my thumbnail?');
-    }
-    addSuggestion('engagement', 'forum', 'Pro Engagement Tip', 'Try replying to comments with a video to maximize reach.', 'Give me pro engagement tips');
-  }
+  // Hashtags / Trends
+  if(m.trendStatus==='Cold') pool.push(S('hashtags','tag','Add Trending Hashtags','No trend alignment. Get top hashtags for your niche.',`Best hashtags for ${platform}`));
+  else if(m.trendStatus!=='Hot') pool.push(S('trend','trending_up','Optimize Hashtag Mix','Mix broad and niche tags for maximum algorithm pick-up.',`Best hashtags for ${platform}`));
 
-  // Fallbacks if we don't have enough suggestions (ensure 3-5 suggestions)
-  if (suggestions.length < 3) {
-    addSuggestion('hashtags', 'tag', 'Hashtag Strategy', 'Refresh your hashtag mix.', 'Give me trending hashtags');
-    addSuggestion('thumbnail', 'image', 'Thumbnail Audit', 'Ensure your cover is scroll-stopping.', 'How can I improve my thumbnail?');
-  }
+  // Pacing
+  if(m.pacingLevel==='Low') pool.push(S('pacing','timer','Fix Video Pacing','Slow edits kill retention. Learn fast-cut techniques.','How should I pace this video?'));
 
-  // Use variation to rotate if we have too many
-  const startIndex = variation % Math.max(1, suggestions.length - 3);
-  return suggestions.slice(startIndex, startIndex + 5);
+  // Thumbnail
+  if(m.thumbnailPercent<60) pool.push(S('thumbnail','image','Improve Thumbnail','Thumbnail is scroll-stopping? Let me audit it.','How can I improve my thumbnail?'));
+  else if(m.thumbnailPercent<80) pool.push(S('thumbnail','image','Thumbnail Refinement','Increase contrast and face prominence for more clicks.','How can I improve my thumbnail?'));
+
+  // Platform tip
+  const platTip={tiktok:'Use trending TikTok audio within 48 hours of it emerging.',instagram:'Post to Stories + Reels same day for 2x reach.',youtube:'Add chapters and timestamps to YouTube Shorts for retention.'};
+  if(platTip[platform]) pool.push(S('trend','tips_and_updates',`${platform.charAt(0).toUpperCase()+platform.slice(1)} Pro Tip`,platTip[platform],'Give me platform tips'));
+
+  // Ensure at least 4
+  while(pool.length<4) pool.push(S('engagement','lightbulb','Viral Content Ideas','Get 3 trending content ideas based on your niche.','Give me viral content ideas'));
+
+  const start=variation%Math.max(1,pool.length-3);
+  return pool.slice(start,start+5);
 }
