@@ -17,46 +17,49 @@ export function generateAnalysisResponse(result, historyStats) {
 
   let response = '';
 
-  // Overall assessment
+// Overall assessment
   if (totalScore >= 80) {
-    response += `🔥 Excellent work! Your content scored ${totalScore}/100 — it has strong viral potential! `;
+    response += `Excellent work. Your content achieved an Audience Reach Score of ${totalScore}/100, indicating high viral potential. `;
   } else if (totalScore >= 60) {
-    response += `👍 Good start! Your content scored ${totalScore}/100. With a few tweaks, this could really take off. `;
+    response += `Solid foundation. Your content scored ${totalScore}/100. With targeted optimizations, you can significantly increase audience reach. `;
   } else if (totalScore >= 40) {
-    response += `⚡ Your content scored ${totalScore}/100. There's room for improvement — let me help you optimize it. `;
+    response += `Your content scored ${totalScore}/100. There are actionable areas for improvement to enhance viewer retention and engagement. `;
   } else {
-    response += `📊 Your content scored ${totalScore}/100. Don't worry — I've identified several areas where we can significantly boost your virality. `;
+    response += `Your content scored ${totalScore}/100. Let's analyze the metrics to identify the core areas holding back your virality. `;
   }
 
   // Personalization based on history
   if (historyStats && historyStats.totalUploads > 1) {
     const prevScore = historyStats.lastUploads.length > 1 ? historyStats.lastUploads[1].score : historyStats.averageScore;
     if (totalScore > prevScore) {
-      response += `\n\nGreat job! This is an improvement of ${totalScore - prevScore} points compared to your previous upload. Keep it up! 📈`;
+      response += `\n\nPerformance Trend: This is a ${totalScore - prevScore}-point improvement over your last upload. Your strategy adjustments are working.`;
     } else if (totalScore < prevScore) {
-      response += `\n\nYour score dipped a bit by ${prevScore - totalScore} points compared to your previous upload. Let's fix that! 🛠️`;
+      response += `\n\nPerformance Trend: This scored ${prevScore - totalScore} points lower than your previous average. Let's look at the engagement triggers.`;
     }
   }
 
   // Find weakest area
   const scores = [
-    { name: 'hook', value: hookPercent || 0 },
-    { name: 'engagement', value: engagementPercent || 0 },
-    { name: 'caption', value: captionPercent || 0 },
+    { name: 'hook effectiveness', value: hookPercent || 0 },
+    { name: 'engagement prediction', value: engagementPercent || 0 },
+    { name: 'retention prediction', value: metrics.retentionPrediction || 0 },
+    { name: 'caption quality', value: captionPercent || 0 },
   ];
   scores.sort((a, b) => a.value - b.value);
   const weakest = scores[0];
 
-  if (weakest.name === 'hook' && weakest.value < 70) {
-    response += `\n\nYour hook needs the most attention (${weakest.value}%). Try starting with a question or a bold statement to grab attention in the first second.`;
-  } else if (weakest.name === 'engagement' && weakest.value < 70) {
-    response += `\n\nEngagement signals are low (${weakest.value}%). Add trending keywords like "wait for it" or "you won't believe" to keep viewers hooked.`;
-  } else if (weakest.name === 'caption' && weakest.value < 70) {
-    response += `\n\nYour caption could be stronger (${weakest.value}%). Aim for 80-200 characters with a clear call-to-action.`;
+  if (weakest.name === 'hook effectiveness' && weakest.value < 70) {
+    response += `\n\nInsight: Hook effectiveness is low (${weakest.value}%). Optimize the first 3 seconds with a pattern interrupt or direct question.`;
+  } else if (weakest.name === 'engagement prediction' && weakest.value < 70) {
+    response += `\n\nInsight: Engagement triggers are underperforming (${weakest.value}%). Incorporate conversational prompts or high-arousal keywords.`;
+  } else if (weakest.name === 'retention prediction' && weakest.value < 70) {
+    response += `\n\nInsight: Estimated retention is low (${weakest.value}%). Improve pacing or cut dead air to maintain viewer interest throughout.`;
+  } else if (weakest.name === 'caption quality' && weakest.value < 70) {
+    response += `\n\nInsight: Caption quality is sub-optimal (${weakest.value}%). Aim for concise, SEO-rich copy with a clear call-to-action.`;
   }
 
   if (trendStatus === 'Cold') {
-    response += `\n\n❄️ Trend alignment is cold. Add relevant hashtags like #fyp #trending to boost discoverability.`;
+    response += `\n\nNote: Trend alignment is currently low. Consider integrating trending topics or relevant hashtags to boost algorithm discovery.`;
   }
 
   if (pacingLevel === 'Low' && contentType === 'video') {

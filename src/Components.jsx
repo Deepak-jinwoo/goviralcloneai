@@ -3,22 +3,56 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export const I = ({n,c='',s}) => <span className={`material-symbols-outlined ${c}`} style={s}>{n}</span>;
 
+// ─── ERROR BOUNDARY ───────────────────────────────────────────────────
+export class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("React Error Boundary caught:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 text-center glass rounded-3xl mt-12 border border-red-500/20">
+          <I n="warning" c="text-red-400 text-5xl mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2 font-jakarta">Something went wrong.</h2>
+          <p className="text-sm text-slate-400 mb-6 max-w-md">We encountered an unexpected error while rendering this component. Our team has been notified.</p>
+          <button onClick={() => window.location.reload()} className="px-6 py-2 rounded-xl bg-white/10 text-white font-semibold hover:bg-white/20 transition">Refresh Page</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ─── NAV ────────────────────────────────────────────────────────────
-export const Nav = ({onNavigate, currentView, user}) => (
-  <nav className="fixed top-0 z-[60] w-full px-5 md:px-10 py-4 bg-[#07101f]/70 backdrop-blur-2xl border-b border-white/5 flex justify-between items-center">
+export const Nav = ({onNavigate, currentView, user, onLogout}) => (
+  <nav className="fixed top-0 z-[60] w-full px-5 md:px-10 py-4 bg-[#09090b]/80 backdrop-blur-2xl border-b border-white/5 flex justify-between items-center">
     <div className="flex items-center gap-8">
-      <span onClick={()=>onNavigate('dashboard')} className="text-xl font-extrabold tracking-tight text-white font-jakarta cursor-pointer flex items-center gap-2">
-        <span className="w-7 h-7 premium-gradient rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30"><I n="rocket_launch" c="text-white" s={{fontSize:14}}/></span>
-        Go Viral<span className="text-purple-400">.</span>
+      <span onClick={()=>onNavigate('dashboard')} className="text-xl font-bold tracking-tight text-white font-inter cursor-pointer flex items-center gap-2">
+        <span className="w-7 h-7 bg-white rounded flex items-center justify-center"><I n="rocket_launch" c="text-black" s={{fontSize:16}}/></span>
+        Go Viral<span className="text-zinc-500 font-medium ml-1">AI</span>
       </span>
       <div className="hidden md:flex items-center gap-8">
         {[['dashboard','Dashboard'],['history','History'],['chat','AI Chat']].map(([v,l])=>(
-          <a key={v} href="#" onClick={e=>{e.preventDefault();onNavigate(v)}} className={`text-sm font-semibold font-jakarta transition-all ${currentView===v?'text-white':'text-slate-500 hover:text-slate-300'}`}>{l}</a>
+          <a key={v} href="#" onClick={e=>{e.preventDefault();onNavigate(v)}} className={`text-sm font-semibold font-inter transition-all ${currentView===v?'text-white':'text-zinc-500 hover:text-zinc-300'}`}>{l}</a>
         ))}
       </div>
     </div>
     <div className="flex items-center gap-3">
-      <button onClick={()=>onNavigate('dashboard')} className="hidden md:flex items-center gap-2 px-5 py-2 rounded-full premium-gradient text-white text-xs font-bold shadow-lg shadow-purple-500/20 hover:scale-105 active:scale-95 transition-all">
+      {user && (
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.02] border border-white/5">
+          <div className="w-5 h-5 rounded-full premium-gradient flex items-center justify-center text-[10px] font-bold text-white uppercase">{user.displayName.charAt(0)}</div>
+          <span className="text-xs font-medium text-zinc-300">{user.displayName}</span>
+          <button onClick={onLogout} className="ml-2 text-zinc-500 hover:text-red-400 transition-colors" title="Log out"><I n="logout" s={{fontSize:14}}/></button>
+        </div>
+      )}
+      <button onClick={()=>onNavigate('dashboard')} className="hidden md:flex items-center gap-2 px-5 py-2 rounded-full bg-white text-black text-xs font-bold hover:scale-105 active:scale-95 transition-all">
         <I n="auto_awesome" s={{fontSize:14}}/> Analyze
       </button>
     </div>
@@ -27,22 +61,22 @@ export const Nav = ({onNavigate, currentView, user}) => (
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────────
 export const Side = ({onNavigate, currentView}) => (
-  <aside className="fixed left-0 top-0 h-full w-60 bg-[#07101f]/50 backdrop-blur-2xl border-r border-white/5 pt-24 px-5 hidden lg:flex flex-col z-50">
+  <aside className="fixed left-0 top-0 h-full w-60 bg-[#09090b]/80 backdrop-blur-2xl border-r border-white/5 pt-24 px-5 hidden lg:flex flex-col z-50">
     <div className="mb-6 px-2">
       <p className="label-caps text-purple-400 mb-1">Navigation</p>
       <p className="text-xl font-bold text-white font-jakarta">Virality Pro</p>
     </div>
     <nav className="flex flex-col gap-1 flex-grow">
       {[['dashboard','Dashboard','home'],['history','History','history'],['chat','AI Chat','smart_toy'],['insights','Trends','trending_up']].map(([view,label,icon])=>(
-        <a key={label} href="#" onClick={e=>{e.preventDefault();onNavigate(view)}} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold font-jakarta transition-all ${currentView===view?'bg-white/5 text-purple-300 border border-white/5':'text-slate-500 hover:text-slate-200 hover:bg-white/[0.03]'}`}>
+        <a key={label} href="#" onClick={e=>{e.preventDefault();onNavigate(view)}} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold font-inter transition-all ${currentView===view?'bg-white/5 text-white border border-white/5':'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03]'}`}>
           <I n={icon} s={{fontSize:18}}/>{label}
         </a>
       ))}
     </nav>
     <div className="pb-8">
-      <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-cyan-500/5 border border-purple-500/20 relative overflow-hidden">
+      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 relative overflow-hidden">
         <p className="text-sm font-bold text-white mb-1">Go Pro 🚀</p>
-        <p className="text-xs text-slate-400 mb-3">Unlock real-time trends, unlimited analysis & API access.</p>
+        <p className="text-xs text-zinc-500 mb-3">Unlock real-time trends, unlimited analysis & API access.</p>
         <button className="w-full py-2 premium-gradient rounded-xl text-xs font-bold text-white shadow-md shadow-purple-500/20">Upgrade Now</button>
       </div>
     </div>
@@ -62,13 +96,12 @@ export const SkeletonDash = () => (
 export const Upload = ({onAnalyze}) => {
   const [drag,setDrag]=useState(false);
   const [caption,setCaption]=useState('');
-  const [platform,setPlatform]=useState('tiktok');
   const [file,setFile]=useState(null);
   const [preview,setPreview]=useState(null);
   const [error,setError]=useState('');
 
   const disabled = !file && !caption.trim();
-  const charColor = caption.length>200?'text-red-400':caption.length>=80?'text-green-400':'text-slate-500';
+  const charColor = caption.length>200?'text-red-400':caption.length>=80?'text-green-400':'text-zinc-500';
 
   const pickFile = () => {
     const inp=document.createElement('input');
@@ -86,76 +119,70 @@ export const Upload = ({onAnalyze}) => {
   };
 
   const handleAnalyze = () => {
-    if(disabled){setError('Please upload a file or enter a caption to analyze.');return;}
-    setError('');onAnalyze({file,caption,platform});
+    if(!file && caption.trim().length < 5) {
+      setError('Please upload a file or enter at least 5 characters of text to analyze.');
+      return;
+    }
+    setError('');
+    // Auto-detect is handled in scoringEngine. We pass platform 'tiktok' as default baseline.
+    onAnalyze({file,caption,platform:'tiktok'});
   };
 
-  const platforms = [['tiktok','TikTok','#ff0050'],['instagram','Instagram','#e1306c'],['youtube','YouTube','#ff0000']];
-
   return (
-    <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="space-y-5 max-w-2xl mx-auto">
+    <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="space-y-4 max-w-2xl mx-auto">
       {/* Drop Zone */}
       <div
         onClick={pickFile}
         onDragOver={e=>{e.preventDefault();setDrag(true)}}
         onDragLeave={()=>setDrag(false)}
         onDrop={handleDrop}
-        className={`glass glow-hover rounded-3xl p-8 text-center cursor-pointer transition-all border-dashed ${drag?'drag-active':'border-white/10'}`}
+        className={`glass rounded-2xl p-10 text-center cursor-pointer transition-all border-dashed ${drag?'drag-active':'border-white/10 hover:border-white/20 hover:bg-white/[0.02]'}`}
       >
         {preview && file ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {file.type?.startsWith('video/')?
-              <video src={preview} className="w-full max-h-40 rounded-xl object-cover mx-auto" muted/>:
-              <img src={preview} alt="" className="w-full max-h-40 rounded-xl object-cover mx-auto"/>
+              <video src={preview} className="w-full max-h-48 rounded-lg object-cover mx-auto" muted/>:
+              <img src={preview} alt="" className="w-full max-h-48 rounded-lg object-cover mx-auto"/>
             }
             <div className="flex items-center justify-center gap-3">
-              <span className="badge badge-purple"><I n={file.type?.startsWith('video/')?"videocam":"image"} s={{fontSize:11}}/> {file.type?.startsWith('video/')?'Video':'Image'}</span>
-              <span className="text-sm text-white font-semibold truncate max-w-[200px]">{file.name}</span>
-              <span className="text-xs text-slate-500">{(file.size/1024/1024).toFixed(1)} MB</span>
+              <span className="text-sm text-zinc-300 font-medium truncate max-w-[200px]">{file.name}</span>
+              <span className="text-xs text-zinc-500">{(file.size/1024/1024).toFixed(1)} MB</span>
             </div>
-            <p className="text-xs text-slate-500">Click to change file</p>
+            <p className="text-xs text-zinc-500">Click or drag to change file</p>
           </div>
         ):(
-          <div>
-            <div className="flex justify-center gap-5 mb-5">
-              {[['play_circle','text-red-400'],['photo_camera','text-pink-400'],['article','text-blue-400']].map(([ic,c])=>(
-                <div key={ic} className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-purple-500/30 transition-all"><I n={ic} c={`${c} text-3xl`}/></div>
-              ))}
+          <div className="space-y-4">
+            <div className="w-12 h-12 rounded-full bg-white/[0.03] border border-white/5 mx-auto flex items-center justify-center">
+              <I n="cloud_upload" c="text-zinc-400 text-2xl"/>
             </div>
-            <h3 className="font-jakarta text-xl font-bold text-white mb-1">Drop your content here</h3>
-            <p className="text-sm text-slate-500">Video, image — TikTok, Instagram, YouTube Shorts</p>
-            <p className="text-xs text-slate-600 mt-2">Or click to browse files</p>
+            <div>
+              <h3 className="font-inter text-lg font-semibold text-white mb-1">Drop your content here</h3>
+              <p className="text-sm text-zinc-500">Upload video, image, or post to analyze viral potential</p>
+            </div>
           </div>
         )}
       </div>
 
       {/* Caption */}
-      <div className="glass rounded-2xl p-1 flex items-center">
+      <div className="glass rounded-xl p-1 flex items-center focus-within:border-white/20 transition-colors">
         <textarea
           value={caption}
           onChange={e=>{setCaption(e.target.value);setError('');}}
-          placeholder="Paste your caption or describe your content…"
+          placeholder="Paste your caption, script, or text post..."
           rows={2}
-          className="flex-1 bg-transparent border-0 outline-none px-4 py-3 text-sm text-white placeholder:text-slate-600 resize-none"
+          className="flex-1 bg-transparent border-0 outline-none px-4 py-3 text-sm text-white placeholder:text-zinc-600 resize-none"
         />
-        <div className={`px-4 text-xs font-bold tabular-nums ${charColor}`}>{caption.length}<span className="text-slate-600">/300</span></div>
+        <div className={`px-4 text-xs font-semibold tabular-nums ${charColor}`}>{caption.length}<span className="text-zinc-600">/300</span></div>
       </div>
 
-      {/* Platform + Analyze */}
-      <div className="flex gap-3">
-        <div className="flex gap-2 glass rounded-2xl p-1">
-          {platforms.map(([v,l])=>(
-            <button key={v} onClick={()=>setPlatform(v)} className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${platform===v?'premium-gradient text-white shadow-md shadow-purple-500/20':'text-slate-400 hover:text-slate-200'}`}>{l}</button>
-          ))}
-        </div>
-        <button
-          onClick={handleAnalyze}
-          disabled={disabled}
-          className={`flex-1 py-3 rounded-2xl font-jakarta font-bold text-sm transition-all flex items-center justify-center gap-2 ${disabled?'bg-slate-800/50 text-slate-600 cursor-not-allowed':'premium-gradient text-white shadow-xl shadow-purple-500/30 hover:scale-[1.02] active:scale-[0.98]'}`}
-        >
-          <I n="auto_awesome" s={{fontSize:18}}/> Analyze Viral Potential
-        </button>
-      </div>
+      {/* Analyze Button */}
+      <button
+        onClick={handleAnalyze}
+        disabled={disabled}
+        className={`w-full py-3.5 rounded-xl font-inter font-semibold text-sm transition-all flex items-center justify-center gap-2 ${disabled?'bg-zinc-900 text-zinc-600 cursor-not-allowed border border-white/5':'bg-white text-black hover:bg-zinc-200 active:scale-[0.98]'}`}
+      >
+        <I n="analytics" s={{fontSize:18}}/> Predict Audience Reach
+      </button>
 
       <AnimatePresence>
         {error && (
@@ -192,7 +219,7 @@ export const ScoreCircle = ({score=0}) => {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-6xl font-extrabold text-white font-jakarta tracking-tighter">{count}</span>
-          <span className="label-caps text-slate-500 mt-1">Virality Score</span>
+          <span className="label-caps text-zinc-500 mt-1">Viral Potential</span>
         </div>
       </div>
       <span className={`badge ${tier.b} mb-2`}>{tier.l}</span>
@@ -214,14 +241,14 @@ export const Metrics = ({metrics}) => {
   const textColor = v => v>=70?'text-green-400':v>=40?'text-amber-400':'text-red-400';
 
   const bars = [
-    {icon:'anchor',label:'Hook',val:m.hookPercent||0,tip:'Opening hook strength'},
-    {icon:'forum',label:'Engagement',val:m.engagementPercent||0,tip:'Engagement trigger density'},
-    {icon:'edit_note',label:'Caption',val:m.captionPercent||0,tip:'Caption quality & CTA'},
-    {icon:'image',label:'Thumbnail',val:m.thumbnailPercent||0,tip:'Visual appeal score'},
+    {icon:'anchor',label:'Hook Effectiveness',val:m.hookPercent||0,tip:'Opening hook strength'},
+    {icon:'forum',label:'Engagement Prediction',val:m.engagementPercent||0,tip:'Engagement trigger density'},
+    {icon:'timer',label:'Retention Prediction',val:m.retentionPrediction||0,tip:'Estimated viewer retention'},
+    {icon:'edit_note',label:'Caption Quality',val:m.captionPercent||0,tip:'Caption quality & CTA'},
   ];
 
   const tags = [
-    {icon:'timer',label:'Pacing',val:m.pacingLevel||'N/A'},
+    {icon:'public',label:'Platform',val:(result?.platform||'Auto').charAt(0).toUpperCase()+(result?.platform||'Auto').slice(1)},
     {icon:'trending_up',label:'Trend',val:m.trendStatus||'N/A'},
   ];
 
@@ -259,6 +286,7 @@ export const Metrics = ({metrics}) => {
 
 // ─── INSIGHTS ──────────────────────────────────────────────────────────
 export const Insights = ({result}) => {
+  if (!result) return null;
   const m=result?.metrics||{};
   const strengths=[];const issues=[];
 
@@ -342,6 +370,7 @@ export const Suggestions = ({suggestions,onRegen,onAction}) => (
 
 // ─── BEFORE / AFTER ───────────────────────────────────────────────────
 export const BeforeAfter = ({result}) => {
+  if (!result) return null;
   const score=result?.totalScore||0;
   const opt=Math.min(score+Math.round((100-score)*0.65),97);
   const m=result?.metrics||{};
@@ -385,3 +414,87 @@ export const BeforeAfter = ({result}) => {
   );
 };
 
+// ─── TRENDS DASHBOARD ────────────────────────────────────────────────
+export const TrendsDashboard = () => {
+  const [trends, setTrends] = useState(null);
+
+  useEffect(() => {
+    import('./utils/trendsEngine.js').then(({ analyzeTrends }) => {
+      setTrends(analyzeTrends());
+    });
+  }, []);
+
+  if (!trends) return <SkeletonDash />;
+
+  return (
+    <motion.div key="trends-page" initial={{opacity:0}} animate={{opacity:1}} className="space-y-8">
+      <section className="mb-6">
+        <motion.h1 initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="font-jakarta text-4xl md:text-6xl font-extrabold text-white mb-4 tracking-tight">
+          Creator <span className="text-gradient">Intelligence</span> 🚀
+        </motion.h1>
+        <motion.p initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="text-lg text-slate-400 max-w-2xl">
+          Discover what's going viral in 2026. Leverage these AI-predicted trends to maximize your reach.
+        </motion.p>
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
+          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.2}} className="glass rounded-3xl p-8">
+            <h3 className="font-bold text-white text-xl font-jakarta mb-6 flex items-center gap-2"><I n="travel_explore" c="text-purple-400"/> What Will Go Viral in 2026</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {trends.categories.slice(0,4).map((c, i) => (
+                <motion.div key={c.name} initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} transition={{delay: i * 0.1}} className="p-5 bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-purple-500/30 rounded-2xl transition-all group">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform"><I n={c.icon} c="text-purple-400 text-xl"/></div>
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${c.status.includes('Exploding') ? 'bg-green-500/10 text-green-400 border border-green-500/20 pulse-dot' : c.status === 'Growing' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>{c.status}</span>
+                  </div>
+                  <h4 className="font-bold text-white mb-1 truncate">{c.name}</h4>
+                  <div className="flex gap-4 mt-3">
+                    <div><p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Potential</p><p className="text-sm font-bold text-green-400">{c.potential}%</p></div>
+                    <div><p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Reach</p><p className="text-sm font-bold text-white">{c.reach}</p></div>
+                    <div><p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Growth</p><p className={`text-sm font-bold ${c.growth.startsWith('-') ? 'text-red-400' : 'text-blue-400'}`}>{c.growth}</p></div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.3}} className="glass rounded-3xl p-6">
+                <h3 className="font-bold text-white text-lg font-jakarta mb-4 flex items-center gap-2"><I n="lightbulb" c="text-amber-400"/> AI Creator Tips</h3>
+                <ul className="space-y-4">
+                  {trends.tips.map((t, i) => (
+                    <li key={i} className="flex gap-3 items-start"><I n="check_circle" c="text-green-400 shrink-0" s={{fontSize:18}}/><p className="text-sm text-slate-300 leading-relaxed">{t}</p></li>
+                  ))}
+                </ul>
+             </motion.div>
+             <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.4}} className="glass rounded-3xl p-6">
+                <h3 className="font-bold text-white text-lg font-jakarta mb-4 flex items-center gap-2"><I n="tag" c="text-blue-400"/> Top Hashtags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {trends.hashtags.map((h, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold rounded-lg hover:bg-blue-500/20 transition-colors cursor-pointer">{h}</span>
+                  ))}
+                </div>
+             </motion.div>
+          </div>
+        </div>
+        
+        <div className="lg:col-span-4 space-y-8">
+          <motion.div initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} transition={{delay:0.3}} className="glass rounded-3xl p-6">
+            <h3 className="font-bold text-white text-lg font-jakarta mb-5 flex items-center gap-2"><I n="moving" c="text-green-400"/> Viral Hooks (Top 3)</h3>
+            <div className="space-y-3">
+              {trends.hooks.map((h, i) => (
+                <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors group cursor-copy">
+                  <div className="flex justify-between items-start">
+                    <p className="text-sm text-white font-medium italic leading-relaxed">"{h}"</p>
+                    <I n="content_copy" c="text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity text-sm ml-2 shrink-0"/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};

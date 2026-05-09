@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Nav, Side, SkeletonDash, Upload, ScoreCircle, Metrics, Insights, Suggestions, BeforeAfter, I } from './Components.jsx';
+import { Nav, Side, SkeletonDash, Upload, ScoreCircle, Metrics, Insights, Suggestions, BeforeAfter, I, ErrorBoundary, TrendsDashboard } from './Components.jsx';
 import { analyzeContent, getVideoDuration } from './utils/scoringEngine.js';
 import { getHistory, saveAnalysis, clearHistory, formatDate, getUserHistoryStats } from './utils/historyManager.js';
 import { generateAnalysisResponse, generateChatResponse } from './utils/aiAssistant.js';
 import { analyzeTrends } from './utils/trendsEngine.js';
 import { generateSuggestions } from './utils/suggestionsEngine.js';
+import { getCurrentUser, logout } from './utils/authManager.js';
 
 import './index.css';
 
@@ -151,10 +152,103 @@ const Chat = ({ result, historyStats, trends, externalPrompt, onExternalPromptHa
   );
 };
 
+const AuthScreen = ({ onAuth }) => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+    import('./utils/authManager.js').then(({ login, signup }) => {
+      const result = isLogin ? login(username, password) : signup(username, password);
+      if (result.success) {
+        onAuth(result.user);
+      } else {
+        setError(result.message);
+      }
+    });
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#09090b]">
+      <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} className="glass rounded-3xl p-10 w-full max-w-md border border-white/10 shadow-2xl">
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 bg-white rounded-xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-white/10">
+            <I n="rocket_launch" c="text-black text-2xl"/>
+          </div>
+          <h1 className="text-2xl font-bold text-white font-inter tracking-tight">Go Viral <span className="text-zinc-500">AI</span></h1>
+          <p className="text-zinc-500 text-sm mt-2">{isLogin ? 'Log in to your account' : 'Create a new account'}</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-zinc-400 mb-1.5 uppercase tracking-wider">Username</label>
+            <input type="text" value={username} onChange={e=>setUsername(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-colors" placeholder="johndoe" required />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-zinc-400 mb-1.5 uppercase tracking-wider">Password</label>
+            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 transition-colors" placeholder="••••••••" required />
+          </div>
+          
+          {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+          
+          <button type="submit" className="w-full py-3.5 bg-white text-black font-bold rounded-xl mt-4 hover:bg-zinc-200 transition-colors shadow-lg">
+            {isLogin ? 'Log In' : 'Sign Up'}
+          </button>
+        </form>
+        
+        <p className="text-center text-sm text-zinc-500 mt-6">
+          {isLogin ? "Don't have an account? " : "Already have an account? "}
+          <button onClick={()=>{setIsLogin(!isLogin);setError('');}} className="text-white font-medium hover:underline">
+            {isLogin ? 'Sign up' : 'Log in'}
+          </button>
+        </p>
+      </motion.div>
+    </div>
+  );
+};
+
+const LoadingScreen = () => {
+  const [msgIdx, setMsgIdx] = useState(0);
+  const msgs = [
+    { title: "Analyzing viral potential...", desc: "Extracting core metadata and content themes." },
+    { title: "Scanning hook strength...", desc: "Evaluating the first 3 seconds of engagement." },
+    { title: "Predicting audience reach...", desc: "Running neural nets against historical trends." }
+  ];
+  
+  useEffect(() => {
+    const t = setInterval(() => setMsgIdx(i => (i + 1) % msgs.length), 2000);
+    return () => clearInterval(t);
+  }, []);
+  
+  return (
+    <motion.div key="loading" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="space-y-8">
+      <div className="glass rounded-3xl p-10 flex flex-col items-center text-center">
+        <div className="w-16 h-16 rounded-full premium-gradient flex items-center justify-center mb-6 animate-pulse">
+          <I n="auto_awesome" c="text-white text-3xl"/>
+        </div>
+        <div className="h-[60px] flex flex-col items-center justify-center relative w-full mb-4">
+          <AnimatePresence mode="wait">
+            <motion.div key={msgIdx} initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-10}} transition={{duration: 0.3}} className="absolute inset-0 flex flex-col items-center justify-center">
+              <h3 className="font-jakarta text-xl font-bold text-white mb-1">{msgs[msgIdx].title}</h3>
+              <p className="text-sm text-slate-400">{msgs[msgIdx].desc}</p>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        <div className="w-full max-w-md h-2 bg-white/5 rounded-full overflow-hidden mt-2">
+          <div className="h-full premium-gradient rounded-full animate-pulse" style={{width:`${Math.min(100, (msgIdx + 1) * 33)}%`, transition: 'width 2s ease'}} />
+        </div>
+      </div>
+      <SkeletonDash/>
+    </motion.div>
+  );
+};
 
 export default function App() {
-  const [user] = useState({ uid: 'guest' });
+  const [user, setUser] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [phase, setPhase] = useState('upload');
   const [currentView, setCurrentView] = useState('dashboard');
   const [analysisResult, setAnalysisResult] = useState(null);
@@ -165,7 +259,11 @@ export default function App() {
   const [suggVariation, setSuggVariation] = useState(0);
   const [chatPrompt, setChatPrompt] = useState(null);
 
-
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    if (currentUser) setUser(currentUser);
+    setIsInitializing(false);
+  }, []);
 
   useEffect(() => { 
     if (user) {
@@ -181,10 +279,14 @@ export default function App() {
 
   const handleAnalyze = async ({ file, caption, platform }) => {
     setPhase('loading');
+    setAnalysisResult(null); // Clear previous
     try {
       const duration = file ? await getVideoDuration(file) : 0;
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 6000)); // Show loading UI
       const result = analyzeContent({ file, caption, platform, duration });
+      
+      if (!result || typeof result.totalScore === 'undefined') throw new Error("Invalid analysis data generated.");
+      
       setAnalysisResult(result);
       const saved = saveAnalysis(result, user.uid);
       if (saved) {
@@ -194,9 +296,7 @@ export default function App() {
       setPhase('results');
     } catch (err) {
       console.error('Analysis failed:', err);
-      const fallback = analyzeContent({ file: null, caption: caption || '', platform, duration: 0 });
-      setAnalysisResult(fallback);
-      setPhase('results');
+      setPhase('error');
     }
   };
 
@@ -219,12 +319,28 @@ export default function App() {
   const handleNavigate = (view) => {
     setCurrentView(view);
   };
+  
+  const handleLogout = () => {
+    logout();
+    setUser(null);
+    setHistory([]);
+    setHistoryStats(null);
+  };
+
+  if (isInitializing) return <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-white">Loading...</div>;
+
+  if (!user) {
+    return <AuthScreen onAuth={setUser} />;
+  }
 
   return (
     <>
-      <Nav onNavigate={handleNavigate} currentView={currentView} user={user} />
+      <Nav onNavigate={handleNavigate} currentView={currentView} user={user} onLogout={handleLogout} />
       <Side onNavigate={handleNavigate} currentView={currentView}/>
       <main className="lg:ml-64 pt-28 px-4 md:px-10 pb-20 max-w-[1400px]">
+        <ErrorBoundary>
+
+        {currentView === 'insights' && <TrendsDashboard />}
 
         {currentView === 'history' && (
           <motion.div key="history-page" initial={{opacity:0}} animate={{opacity:1}} className="space-y-8">
@@ -254,10 +370,10 @@ export default function App() {
         {currentView === 'dashboard' && (
           <>
             <section className="mb-12">
-              <motion.h1 initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="font-jakarta text-4xl md:text-6xl font-extrabold text-white mb-4 tracking-tight leading-tight">
-                {phase==='upload'?<>Turn Your Content <span className="text-gradient">Viral with AI</span> 🚀</>:<>Predict Your <span className="text-gradient">Viral Potential</span> ✨</>}
+              <motion.h1 initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} className="font-inter text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight leading-tight">
+                {phase==='upload'?<>Turn Your Content <span className="text-zinc-400">Viral</span></>:<>Predict Your <span className="text-zinc-400">Audience Reach</span></>}
               </motion.h1>
-              <motion.p initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="text-lg text-slate-400 max-w-2xl">
+              <motion.p initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="text-lg text-zinc-500 max-w-2xl">
                 {phase==='upload'?'Upload your content and get instant virality insights powered by neural networks.':'Precision analysis for the creator economy. Leverage AI to maximize reach.'}
               </motion.p>
             </section>
@@ -265,15 +381,16 @@ export default function App() {
             <AnimatePresence mode="wait">
               {phase==='upload' && <motion.div key="upload" exit={{opacity:0,y:-20}}><Upload onAnalyze={handleAnalyze}/></motion.div>}
 
-              {phase==='loading' && (
-                <motion.div key="loading" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="space-y-8">
-                  <div className="glass rounded-3xl p-10 flex flex-col items-center text-center">
-                    <div className="w-16 h-16 rounded-full premium-gradient flex items-center justify-center mb-6 animate-pulse"><I n="auto_awesome" c="text-white text-3xl"/></div>
-                    <h3 className="font-jakarta text-xl font-bold text-white mb-2">Analyzing Your Content...</h3>
-                    <p className="text-sm text-slate-400 mb-6">Our AI is scanning visual hooks, pacing, and engagement triggers.</p>
-                    <div className="w-full max-w-md h-2 bg-white/5 rounded-full overflow-hidden"><div className="h-full premium-gradient rounded-full animate-pulse" style={{width:'65%'}}></div></div>
-                  </div>
-                  <SkeletonDash/>
+              {phase==='loading' && <LoadingScreen/>}
+
+              {phase==='error' && (
+                <motion.div key="error" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="glass rounded-3xl p-12 flex flex-col items-center text-center border border-red-500/20">
+                  <I n="error" c="text-red-400 text-6xl mb-4" />
+                  <h3 className="font-jakarta text-2xl font-bold text-white mb-2">Analysis Failed</h3>
+                  <p className="text-slate-400 mb-8 max-w-md">We couldn't process this content. Please try again with a different file or shorter caption.</p>
+                  <button onClick={()=>setPhase('upload')} className="px-6 py-3 rounded-xl bg-white text-black font-bold hover:scale-105 transition-transform flex items-center gap-2">
+                    <I n="refresh"/> Try Again
+                  </button>
                 </motion.div>
               )}
 
@@ -297,6 +414,7 @@ export default function App() {
             </AnimatePresence>
           </>
         )}
+        </ErrorBoundary>
       </main>
       <button onClick={()=>setPhase('upload')} className="md:hidden fixed bottom-8 right-8 w-14 h-14 premium-gradient rounded-full flex items-center justify-center shadow-2xl shadow-purple-500/40 z-50 hover:scale-110 active:scale-95 transition-all"><I n="add" c="text-white text-2xl"/></button>
     </>

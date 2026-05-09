@@ -246,10 +246,10 @@ export function analyzeContent({ file, caption, platform, duration = 0 }) {
   const totalScore = Math.min(Math.max(Math.round(totalRaw), 0), 100);
 
   // Convert sub-scores to percentages for display
-  const hookPercent = Math.min(Math.round((hookRaw / 15) * 100), 100);
-  const engagementPercent = Math.min(Math.round(((captionRaw + trendRaw) / 30) * 100), 100);
+  const hookEffectiveness = Math.min(Math.round((hookRaw / 15) * 100), 100);
+  const engagementPrediction = Math.min(Math.round(((captionRaw + trendRaw) / 30) * 100), 100);
+  const retentionPrediction = Math.min(Math.round(((durationScore / 15) * 50) + ((hookRaw / 15) * 50)), 100);
   const captionPercent = Math.min(Math.round((captionRaw / 20) * 100), 100);
-  const thumbnailPercent = deriveThumbnailScore(contentType, hookRaw, captionRaw);
   const pacingLevel = derivePacingLevel(duration, contentType);
   const trendStatus = deriveTrendStatus(trendRaw);
 
@@ -262,10 +262,10 @@ export function analyzeContent({ file, caption, platform, duration = 0 }) {
     fileName: file ? file.name : 'Text Input',
     caption: caption || '',
     metrics: {
-      hookPercent,
-      engagementPercent,
+      hookPercent: hookEffectiveness,
+      engagementPercent: engagementPrediction,
+      retentionPrediction,
       captionPercent,
-      thumbnailPercent,
       pacingLevel,
       trendStatus,
     },
