@@ -1,0 +1,10 @@
+{
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Go Viral AI",
+        "supportEmail": "msdeepak113@gmail.com"
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Go Viral Clone — AI Content Virality Analyzer</title>
+    <meta name="description" content="Upload your content and get AI-powered virality scoring, engagement insights, and actionable improvement suggestions." />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              bg: "#0b1326",
+              "bg-low": "#131b2e",
+              "bg-mid": "#171f33",
+              "bg-high": "#222a3d",
+              "bg-highest": "#2d3449",
+              primary: "#d0bcff",
+              "primary-container": "#a078ff",
+              "inverse-primary": "#6d3bd7",
+              secondary: "#4cd7f6",
+              tertiary: "#dbb8ff",
+              "on-surface": "#dae2fd",
+              "on-surface-variant": "#cbc3d7",
+              neon: "#00ffaa",
+            },
+            fontFamily: {
+              jakarta: ["Plus Jakarta Sans", "sans-serif"],
+              inter: ["Inter", "sans-serif"],
+              grotesk: ["Space Grotesk", "sans-serif"],
+            },
+          },
+        },
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
